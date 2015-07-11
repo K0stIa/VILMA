@@ -8,7 +8,7 @@ LPIP = "2015-02-04-LPIP"
 
 SHORTCUT= {MORPH: "morph", LPIP: "lpip"}
 
-FOLDER_PATH = "/datagrid/personal/antonkos/experiments/jml"
+FOLDER_PATH = "/datagrid/personal/antonkos/experiments/vilma"
 
 def makedir_p(dirname):
     try:
@@ -43,7 +43,7 @@ YEAR=%d
 BIN_PATH=/home.dokt/antonkos/code/vilma/build/main
 DATA_PATH=/datagrid/personal/antonkos/experiments/vilma/%s
 
-""" % (year_range, LPIP)
+""" % (year_range, data_name)
 
     file_body += "${BIN_PATH}  %s %s %s %d %d %.3f" % \
                  (input_path, output_filename, oracle_id, supervised_num, fraction, lmbda)
