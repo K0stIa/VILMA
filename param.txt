@@ -1,0 +1,13 @@
+NumSubProblems Int 1 
+NumVariables Int 5
+ProblemName S “AGE”
+MaxOuterIterations Int 500 
+MaxInnerIterations Int 100 
+#ObjectiveLB D -0.416666666666666
+Verbosity I 3
+Proximal I 0
+Ball I 1
+RadiusBall D 100
+Tolerance D 0.01
+WeightEpigraphCutInit D 1.0
+WeightEpigraphCutInc D 0.0
