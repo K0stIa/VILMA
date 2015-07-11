@@ -40,8 +40,8 @@ def print_sh_job_file(data_name, oracle_id, supervised_num, lmbda, permid, year_
 
     file_body = """#!/bin/bash
 YEAR=%d
-BIN_PATH=/home.dokt/antonkos/code/jmlr/sparse_sgd/sparse_sgd/build/main
-DATA_PATH=/datagrid/personal/antonkos/experiments/jml/%s
+BIN_PATH=/home.dokt/antonkos/code/vilma/build/main
+DATA_PATH=/datagrid/personal/antonkos/experiments/vilma/%s
 
 """ % (year_range, LPIP)
 
@@ -55,12 +55,10 @@ DATA_PATH=/datagrid/personal/antonkos/experiments/jml/%s
 
 if __name__ == "__main__":
     target_oracles = ["SingleGenderAgeBmrmOracle",
-                      "SingleGenderNoBetaBmrmOracle",
-                      "DoubleGenderNoBetaBmrmOracle", 
-                      "PwSingleGenderNoBetaBmrmOracle"]
+                      "SingleGenderNoBetaBmrmOracle"]
 
     Loss = "ZOLoss"
-    data_name = LPIP
+    data_name = MORPH
     for supervised_num in [3300]:
         #for fraction in [3300, 6600, 11000, 16000, 21000]:
         for fraction in [3300, 6600, 10000, 13000, 23000, 33000]:
