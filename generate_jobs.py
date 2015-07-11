@@ -59,14 +59,14 @@ if __name__ == "__main__":
                       "DoubleGenderNoBetaBmrmOracle", 
                       "PwSingleGenderNoBetaBmrmOracle"]
 
-    Loss = "MAELoss"
+    Loss = "ZOLoss"
     data_name = LPIP
     for supervised_num in [3300]:
         #for fraction in [3300, 6600, 11000, 16000, 21000]:
         for fraction in [3300, 6600, 10000, 13000, 23000, 33000]:
             if fraction < supervised_num:
                 continue
-            for oracle_id in ["SingleGenderAgeBmrmOracle"]:
+            for oracle_id in ["SingleGenderNoBetaBmrmOracle"]:
                 for year_range in [5]:
                     for lmbda in [0.1, 0.01]:
                         for permid in [1, 2, 3]:
