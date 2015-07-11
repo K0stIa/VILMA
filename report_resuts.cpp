@@ -32,7 +32,7 @@ using std::string;
 
 typedef Vilma::DenseVector<double> DenseVecD;
 
-typedef MAELoss Loss;
+typedef Vilma::MAELoss Loss;
 
 template <class Oracle>
 void PrintResults(const string kDataset, const string kOracleName,
