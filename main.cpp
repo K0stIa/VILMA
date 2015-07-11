@@ -57,8 +57,12 @@ void RunExperiment(const string &input_dir, const string &output_filename,
   Data data;
   std::cout << "Loading train data from file: " << (input_dir + "-trn.bin")
             << endl;
-  LoadData(input_dir + "-trn.bin", &data, fraction, supervised);
-  std::cout << "Data loaded\n";
+  if(LoadData(input_dir + "-trn.bin", &data, fraction, supervised)) {
+    std::cout << "Data loaded.\n";
+  } else {
+    std::cout << "Failed to load data!\n";
+    return;
+  }
 
   Oracle oracle(&data);
   oracle.set_lambda(lambda);
