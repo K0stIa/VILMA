@@ -44,7 +44,7 @@ void DenseVector<T>::add_dense(const DenseVector<T> &v, const T &d) {
     }
   };
 
-  add_sse2(data_, v.data_, d, dim_);
+  add_dummy(data_, v.data_, d, dim_);
 }
 
 template <class T>
@@ -84,7 +84,7 @@ void DenseVector<T>::mul(const scalar &d) {
     }
   };
 
-  mul_sse2(data_, d, dim_);
+  mul_dummy(data_, d, dim_);
 }
 
 }  // namespace end
