@@ -21,11 +21,10 @@ bool LoadData(const std::string& filepath, Data* data,
   int n = Vilma::VectorInterface::read<int>(&file);
 
   std::cout << "File has " << n << " examples with dim=" << dim << std::endl;
-  std::cout << " Vilma use " << max_num_examples << " with "
+  std::cout << " Vilma will use " << max_num_examples << " with "
             << num_supervised_examples << " supervised examples" << std::endl;
 
-  data->x =
-      new Vilma::SparseMatrix<double>(std::min(max_num_examples, n), dim);
+  data->x = new Vilma::SparseMatrix<double>(std::min(max_num_examples, n), dim);
 
   for (int i = 0; i < n; ++i) {
     int non_zero = Vilma::VectorInterface::read<int>(&file);
