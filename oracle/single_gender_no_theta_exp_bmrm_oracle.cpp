@@ -135,11 +135,11 @@ template <class Loss>
 void SingleGenderNoThetaExpBmrmOracle<Loss>::TrainTheta(DenseVecD *theta,
                                                         Data *data,
                                                         double *wx_buffer) {
-  const int num_age_classes = theta->dim_;
+  const int var_dim = theta->dim_;
 
   Accpm::Parameters param;  //(paramFile);
 
-  param.setIntParameter("NumVariables", num_age_classes - 1);
+  param.setIntParameter("NumVariables", var_dim);
   param.setIntParameter("NumSubProblems", 1);
 
   param.setIntParameter("MaxOuterIterations", 2000);
@@ -161,8 +161,8 @@ void SingleGenderNoThetaExpBmrmOracle<Loss>::TrainTheta(DenseVecD *theta,
   param.setRealParameter("WeightEpigraphCutInit", 1);
   param.setRealParameter("WeightEpigraphCutInc", 0);
 
-  param.setVariableLB(vector<double>(num_age_classes, -100));
-  param.setVariableUB(vector<double>(num_age_classes, 100));
+  param.setVariableLB(vector<double>(var_dim, -100));
+  param.setVariableUB(vector<double>(var_dim, 100));
 
   // param.output(std::cout);
 
@@ -320,7 +320,7 @@ double SingleGenderAuxiliaryThetaAccpmOracle<Loss>::UpdateSingleExampleGradient(
   }
 
   if (gt_yl >= 1 && left_subproblem > 0) {
-    gradient->data_[gt_yl] += 1;
+    gradient->data_[gt_yl - 1] += 1;
   }
   if (right_subproblem > 0) {
     gradient->data_[gt_yr] -= 1;
