@@ -147,8 +147,8 @@ pair<vector<double>, vector<double>> ExtractResults(const string kDataset,
       fraction_second_moment += best_tst_error * best_tst_error;
     }  // end perms
     fraction_errors.push_back(fraction_error / 3);
-    fraction_stds.push_back(fraction_second_moment / 3 -
-                            fraction_error * fraction_error / 9);
+    fraction_stds.push_back(
+        sqrt(fraction_second_moment / 3 - fraction_error * fraction_error / 9));
   }
 
   return std::make_pair(fraction_errors, fraction_stds);
