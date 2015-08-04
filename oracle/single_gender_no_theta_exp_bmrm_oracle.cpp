@@ -62,7 +62,7 @@ double SingleGenderNoThetaExpBmrmOracle<Loss>::risk(const double *weights,
 
   gradient.fill(0);
 
-  // TODO: train beta
+  // TODO: train theta
   TrainTheta(&theta_, data_, wx_buffer_);
 
   double obj = 0;
@@ -80,7 +80,7 @@ double SingleGenderNoThetaExpBmrmOracle<Loss>::risk(const double *weights,
 
 template <class Loss>
 double SingleGenderNoThetaExpBmrmOracle<Loss>::UpdateSingleExampleGradient(
-    const DenseVecD &params, const DenseVecD &beta, const double wx,
+    const DenseVecD &params, const DenseVecD &theta, const double wx,
     const int example_idx, DenseVecD *gradient) {
   // extract example labels
   const int gt_yl = data_->yl->data_[example_idx];
@@ -92,47 +92,29 @@ double SingleGenderNoThetaExpBmrmOracle<Loss>::UpdateSingleExampleGradient(
   assert(yl <= yr);
 #endif
 
-  const auto left_subproblem =
-      SingleExampleBestAgeLabelLookup(wx, beta, 0, gt_yl, gt_yl, &loss_);
-  const auto right_subproblem = SingleExampleBestAgeLabelLookup(
-      wx, beta, gt_yr, GetDataNumAgeClasses() - 1, gt_yr, &loss_);
-
-  const int &best_yl = std::get<1>(left_subproblem);
-  const int &best_yr = std::get<1>(right_subproblem);
-
-  // update gradient
-  const int coef = best_yl + best_yr - gt_yl - gt_yr;
-  // get reference on curent example
-  const Vilma::SparseVector<double> *x = data_->x->GetRow(example_idx);
-  // TODO: make method for this
-  for (int i = 0; i < x->non_zero_; ++i) {
-    gradient->data_[x->index_[i]] += coef * x->vals_[i];
+  double right_subproblem = fmax(0.0, 1.0 + wx - theta[gt_yr]);
+  double left_subproblem = 0;
+  if (gt_yl >= 1) {
+    left_subproblem = fmax(0.0, 1.0 - wx + theta[gt_yl - 1]);
   }
 
-  const double psi = wx * (gt_yl + gt_yr) + beta[gt_yl] + beta[gt_yr];
-  return std::get<0>(left_subproblem) + std::get<0>(right_subproblem) - psi;
-}
-
-template <class Loss>
-std::tuple<double, int>
-SingleGenderNoThetaExpBmrmOracle<Loss>::SingleExampleBestAgeLabelLookup(
-    const double wx, const DenseVecD &beta, int from, int to, const int gt_y,
-    const Loss *const loss_ptr_) {
-  double best_cost = 0;
-  int best_y = -1;
-  for (int y = from; y <= to; ++y) {
-    const double cost =
-        (loss_ptr_ != nullptr ? loss_ptr_->operator()(y, gt_y) : 0) + wx * y +
-        beta[y];
-    if (best_y == -1 || best_cost < cost) {
-      best_cost = cost;
-      best_y = y;
+  double coef = 0;
+  if (right_subproblem > 0) {
+    ++coef;
+  }
+  if (left_subproblem > 0) {
+    --coef;
+  }
+  if (gt_yl >= 1 && coef) {
+    // get reference on curent example
+    const Vilma::SparseVector<double> *x = data_->x->GetRow(example_idx);
+    // TODO: make method for this
+    for (int i = 0; i < x->non_zero_; ++i) {
+      gradient->data_[x->index_[i]] += coef * x->vals_[i];
     }
   }
-#ifdef USE_ASSERT
-  assert(best_y != -1);
-#endif
-  return std::make_tuple(best_cost, best_y);
+
+  return left_subproblem + right_subproblem;
 }
 
 template <class Loss>
@@ -150,14 +132,14 @@ void SingleGenderNoThetaExpBmrmOracle<Loss>::ProjectData(
 }
 
 template <class Loss>
-void SingleGenderNoThetaExpBmrmOracle<Loss>::TrainTheta(DenseVecD *beta,
+void SingleGenderNoThetaExpBmrmOracle<Loss>::TrainTheta(DenseVecD *theta,
                                                         Data *data,
                                                         double *wx_buffer) {
-  const int num_age_classes = beta->dim_;
+  const int num_age_classes = theta->dim_;
 
   Accpm::Parameters param;  //(paramFile);
 
-  param.setIntParameter("NumVariables", num_age_classes);
+  param.setIntParameter("NumVariables", num_age_classes - 1);
   param.setIntParameter("NumSubProblems", 1);
 
   param.setIntParameter("MaxOuterIterations", 2000);
@@ -207,7 +189,7 @@ void SingleGenderNoThetaExpBmrmOracle<Loss>::TrainTheta(DenseVecD *beta,
 #endif
 
   for (int i = 0; i < x.size(); ++i) {
-    beta->operator[](i) = x(i);
+    theta->operator[](i) = x(i);
   }
 
   qpGen.terminate();
@@ -220,7 +202,11 @@ double SingleGenderNoThetaExpBmrmOracle<Loss>::EvaluateModel(Data *data,
   const int num_examples = data->x->kRows;
   const int dim_x = GetDataDim();
   int error = 0;
-  DenseVecD beta(data->ny, params + dim_x);
+  DenseVecD theta(data->ny - 1, params + dim_x);
+  DenseVecD beta(data->ny);
+  for (int i = 0; i < data->ny - 1; ++i) {
+    beta[i + 1] = beta[i] - theta[i];
+  }
   for (int ex = 0; ex < num_examples; ++ex) {
     const Vilma::SparseVector<double> &x = *kData.x->GetRow(ex);
     const int y = kData.y->data_[ex];
@@ -235,14 +221,36 @@ double SingleGenderNoThetaExpBmrmOracle<Loss>::EvaluateModel(Data *data,
 }
 
 template <class Loss>
+std::tuple<double, int>
+SingleGenderNoThetaExpBmrmOracle<Loss>::SingleExampleBestAgeLabelLookup(
+    const double wx, const DenseVecD &beta, int from, int to, const int gt_y,
+    const Loss *const loss_ptr_) {
+  double best_cost = 0;
+  int best_y = -1;
+  for (int y = from; y <= to; ++y) {
+    const double cost =
+        (loss_ptr_ != nullptr ? loss_ptr_->operator()(y, gt_y) : 0) + wx * y +
+        beta[y];
+    if (best_y == -1 || best_cost < cost) {
+      best_cost = cost;
+      best_y = y;
+    }
+  }
+#ifdef USE_ASSERT
+  assert(best_y != -1);
+#endif
+  return std::make_tuple(best_cost, best_y);
+}
+
+template <class Loss>
 SingleGenderAuxiliaryThetaAccpmOracle<
     Loss>::SingleGenderAuxiliaryThetaAccpmOracle(Data *data, double *wx)
     : OracleFunction(),
       loss_(),
       kNumAgeClasses(data->ny),
-      accpm_grad_vector_(data->ny),
-      params_(data->ny),
-      gradient_(data->ny),
+      accpm_grad_vector_(data->ny - 1),
+      params_(data->ny - 1),
+      gradient_(data->ny - 1),
       wx_buffer_(wx),
       data_(data) {}
 
@@ -255,7 +263,7 @@ int SingleGenderAuxiliaryThetaAccpmOracle<Loss>::eval(
     const Accpm::AccpmVector &y, Accpm::AccpmVector &functionValue,
     Accpm::AccpmGenMatrix &subGradients, Accpm::AccpmGenMatrix *info) {
   // call native oracle function
-  for (int i = 0; i < kNumAgeClasses; ++i) {
+  for (int i = 0; i < kNumAgeClasses - 1; ++i) {
     params_[i] = y(i);
   }
   // TODO: implement this
@@ -277,7 +285,7 @@ int SingleGenderAuxiliaryThetaAccpmOracle<Loss>::eval(
 
   functionValue = obj;
 
-  for (int i = 0; i < kNumAgeClasses; ++i) {
+  for (int i = 0; i < kNumAgeClasses - 1; ++i) {
     accpm_grad_vector_(i) = gradient_[i];
   }
 
@@ -293,7 +301,7 @@ int SingleGenderAuxiliaryThetaAccpmOracle<Loss>::eval(
 
 template <class Loss>
 double SingleGenderAuxiliaryThetaAccpmOracle<Loss>::UpdateSingleExampleGradient(
-    const DenseVecD &beta, const double wx, const int example_idx,
+    const DenseVecD &theta, const double wx, const int example_idx,
     DenseVecD *gradient) {
   // extract example labels
   const int gt_yl = data_->yl->data_[example_idx];
@@ -305,25 +313,20 @@ double SingleGenderAuxiliaryThetaAccpmOracle<Loss>::UpdateSingleExampleGradient(
   assert(yl <= yr);
 #endif
 
-  const auto left_subproblem =
-      SingleGenderNoThetaExpBmrmOracle<Loss>::SingleExampleBestAgeLabelLookup(
-          wx, beta, 0, gt_yl, gt_yl, &loss_);
-  const auto right_subproblem =
-      SingleGenderNoThetaExpBmrmOracle<Loss>::SingleExampleBestAgeLabelLookup(
-          wx, beta, gt_yr, data_->ny - 1, gt_yr, &loss_);
+  double right_subproblem = fmax(0.0, 1.0 + wx - theta[gt_yr]);
+  double left_subproblem = 0;
+  if (gt_yl >= 1) {
+    left_subproblem = fmax(0.0, 1.0 - wx + theta[gt_yl - 1]);
+  }
 
-  const int &best_yl = std::get<1>(left_subproblem);
-  const int &best_yr = std::get<1>(right_subproblem);
+  if (gt_yl >= 1 && left_subproblem > 0) {
+    gradient->data_[gt_yl] += 1;
+  }
+  if (right_subproblem > 0) {
+    gradient->data_[gt_yr] -= 1;
+  }
 
-  // update gradient
-  gradient->data_[best_yl] += 1;
-  gradient->data_[best_yr] += 1;
-  gradient->data_[gt_yl] -= 1;
-  gradient->data_[gt_yr] -= 1;
-
-  const double psi = wx * (gt_yl + gt_yr) + beta[gt_yl] + beta[gt_yr];
-
-  return std::get<0>(left_subproblem) + std::get<0>(right_subproblem) - psi;
+  return left_subproblem + right_subproblem;
 }
 
 template class BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss>;
