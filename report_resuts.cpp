@@ -240,7 +240,7 @@ int main(int argc, const char *argv[]) {
 
   const string classifier_id = argv[2];
   if (classifier_id != "SingleGenderNoBetaBmrmOracle" &&
-      classifier_id != "SingleGenderNoBetaBmrmOracle") {
+      classifier_id != "SingleGenderNoThetaExpBmrmOracle") {
     cout << "Error! Bad dataset name! Must be either morph or lpip.";
     return 0;
   }
