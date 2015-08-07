@@ -154,12 +154,12 @@ pair<vector<double>, vector<double>> ExtractResults(const string kDataset,
   return std::make_pair(fraction_errors, fraction_stds);
 }
 
-void BuildTable2(const string dataset) {
+void BuildTable2(const string dataset, const string classifier_id) {
   // supervised 3300
   vector<vector<double>> errors_mae_3300, stds_mae_3300;
   vector<int> age_set = {5, 10, 20};
   const string MAE_3300_SingleGenderNoBetaBmrmOracle =
-      "SingleGenderNoBetaBmrmOracle-ZOLoss-" + to_string(3300);
+      classifier_id + "-ZOLoss-" + to_string(3300);
   std::cout << "Oracle: " << MAE_3300_SingleGenderNoBetaBmrmOracle << std::endl;
   for (int age : age_set) {
     auto res = ExtractResults<
@@ -171,7 +171,7 @@ void BuildTable2(const string dataset) {
   // supervised 6600
   vector<vector<double>> errors_mae_6600, stds_mae_6600;
   const string MAE_6600_SingleGenderNoBetaBmrmOracle =
-      "SingleGenderNoBetaBmrmOracle-ZOLoss-" + to_string(6600);
+      classifier_id + "-ZOLoss-" + to_string(6600);
   std::cout << "Oracle: " << MAE_6600_SingleGenderNoBetaBmrmOracle << std::endl;
   for (int age : age_set) {
     auto res = ExtractResults<
@@ -183,7 +183,7 @@ void BuildTable2(const string dataset) {
 
   // supervised baseline
   const string MAE_supervised_SingleGenderNoBetaBmrmOracle =
-      "SingleGenderNoBetaBmrmOracle-ZOLoss-baseline";
+      classifier_id + "-ZOLoss-baseline";
   vector<vector<double>> errors_mae_baseline, stds_mae_baseline;
   std::cout << "Oracle: " << MAE_supervised_SingleGenderNoBetaBmrmOracle
             << std::endl;
@@ -230,15 +230,24 @@ void BuildTable2(const string dataset) {
 int main(int argc, const char *argv[]) {
 #ifdef LOCAL_HOST
   const string dataset = "morph";
+  const string classifier_id = "SingleGenderNoBetaBmrmOracle";
 #else
   const string dataset = argv[1];
   if (dataset != "morph" && dataset != "lpip") {
     cout << "Error! Bad dataset name! Must be either morph or lpip.";
     return 0;
   }
+
+  const string classifier_id = argv[2];
+  if (classifier_id != "SingleGenderNoBetaBmrmOracle" &&
+      classifier_id != "SingleGenderNoBetaBmrmOracle") {
+    cout << "Error! Bad dataset name! Must be either morph or lpip.";
+    return 0;
+  }
+
 #endif
 
-  BuildTable2(dataset);
+  BuildTable2(dataset, classifier_id);
 
   return 0;
 }
