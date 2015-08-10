@@ -102,6 +102,10 @@ pair<vector<double>, vector<double>> ExtractResults(const string kDataset,
         DenseVecD opt_params(&file);
         file.close();
 
+        double s = 0;
+        for (int i = 0; i < opt_params.dim_; ++i) s += opt_params.data_[i];
+        cout << "S: " << s << endl;
+
         // compute train error
         double trn_error =
             single_gender_oracle.EvaluateModel(&data, opt_params.data_);
