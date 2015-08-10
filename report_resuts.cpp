@@ -73,7 +73,7 @@ pair<vector<double>, vector<double>> ExtractResults(const string kDataset,
       double best_val_error = 1e60;
       double best_tst_error = 1e60;
 
-      for (double lambda : {1.0, 0.1, 0.01}) {
+      for (double lambda : {0.1, 0.01}) {
         const string data_dir = kInputDir + "/" + kDataset + "/range" +
                                 to_string(kAge) + "/perm-" + to_string(perm_id);
         const string trn_filepath = data_dir + "/" + kDataset + "-trn.bin";
