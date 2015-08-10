@@ -306,6 +306,10 @@ int SingleGenderAuxiliaryThetaAccpmOracle<Loss>::eval(
     // Thus oracle has to return vector d and scalar value d^T * x - d
 
     // find wrongly ordered thresholds, e.g. theta_y > theta_{y+1}
+
+    // https://github.com/lolow/oboe-fix/blob/master/doc/userguide/OBOE-UserGuide.pdf
+    // section 3.1.2
+
     int idx = -1;
     for (int i = 0; i < kNumAgeClasses - 2; ++i) {
       if (params_[i] > params_[i + 1]) {

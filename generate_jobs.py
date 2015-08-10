@@ -17,7 +17,13 @@ def makedir_p(dirname):
         pass
 
 def isCaculated(folder_path, data_name, oracle_name, supervised_num, year_range, fraction, perm_id, lmbda):
-    output_path = folder_path + ("/%s/%s-%d/year-%d/fraction-%d/" % (data_name, oracle_name, supervised_num, year_range, fraction))
+    if supervised_num == fraction:
+        output_path = FOLDER_PATH + ("/%s/%s-baseline/year-%d/fraction-%d/" % (data_name, oracle_id,
+                                                                     year_range, fraction))
+    else:
+        output_path = FOLDER_PATH + ("/%s/%s-%d/year-%d/fraction-%d/" % (data_name, oracle_id,
+                                                                     supervised_num, year_range, fraction))
+
     file_path = output_path + ("%d-%.4f.bin" % (perm_id, lmbda))
     return os.path.exists(file_path)
 
@@ -25,7 +31,7 @@ def print_sh_job_file(data_name, oracle_id, supervised_num, lmbda, permid, year_
 
     input_path = FOLDER_PATH + "/%s/%s/range%d/perm-%d/%s" % (data_name, SHORTCUT[data_name], year_range, permid,SHORTCUT[data_name])
     if supervised_num == fraction:
-      output_path = FOLDER_PATH + ("/%s/%s-baseline/year-%d/fraction-%d/" % (data_name, oracle_id,
+        output_path = FOLDER_PATH + ("/%s/%s-baseline/year-%d/fraction-%d/" % (data_name, oracle_id,
                                                                      year_range, fraction))
     else:
         output_path = FOLDER_PATH + ("/%s/%s-%d/year-%d/fraction-%d/" % (data_name, oracle_id,
