@@ -60,7 +60,7 @@ DATA_PATH=/datagrid/personal/antonkos/experiments/jml/%s
         f.close()
 
 if __name__ == "__main__":
-    target_oracles = ["SingleGenderAgeBmrmOracle",
+    target_oracles = ["SingleGenderNoThetaExpBmrmOracle",
                       "SingleGenderNoBetaBmrmOracle"]
 
     Loss = "ZOLoss"
