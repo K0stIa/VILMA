@@ -266,35 +266,71 @@ int SingleGenderAuxiliaryThetaAccpmOracle<Loss>::eval(
   for (int i = 0; i < kNumAgeClasses - 1; ++i) {
     params_[i] = y(i);
   }
-  // TODO: implement this
-  // functionValue = oracle_->risk(&params[0], &gradient[0]);
 
-  const int nexamples = data_->x->kRows;
-
-  gradient_.fill(0);
-  double obj = 0;
-
-  for (int example_idx = 0; example_idx < nexamples; ++example_idx) {
-    double val = UpdateSingleExampleGradient(params_, wx_buffer_[example_idx],
-                                             example_idx, &gradient_);
-    obj += val;
+  // check for feasibility
+  bool feasibly = true;
+  for (int i = 0; i < kNumAgeClasses - 2; ++i) {
+    if (params_[i] > params_[i + 1]) {
+      feasibly = false;
+    }
   }
-  // normalize
-  gradient_.mul(1. / nexamples);
-  obj /= nexamples;
 
-  functionValue = obj;
+  if (feasibly) {
+    const int nexamples = data_->x->kRows;
 
-  for (int i = 0; i < kNumAgeClasses - 1; ++i) {
-    accpm_grad_vector_(i) = gradient_[i];
+    gradient_.fill(0);
+    double obj = 0;
+
+    for (int example_idx = 0; example_idx < nexamples; ++example_idx) {
+      double val = UpdateSingleExampleGradient(params_, wx_buffer_[example_idx],
+                                               example_idx, &gradient_);
+      obj += val;
+    }
+    // normalize
+    gradient_.mul(1. / nexamples);
+    obj /= nexamples;
+
+    functionValue = obj;
+
+    for (int i = 0; i < kNumAgeClasses - 1; ++i) {
+      accpm_grad_vector_(i) = gradient_[i];
+    }
+
+    if (info != nullptr) {
+      *info = 1;
+    }
+  } else {
+    // not feasibile point, so we do a feasibility cut
+    // in OBOE if we have a linear constraint d^T * y <= d
+    // d^T * (y - x) + d^T * x - d <= 0, where x is a query point.
+    // Thus oracle has to return vector d and scalar value d^T * x - d
+
+    // find wrongly ordered thresholds, e.g. theta_y > theta_{y+1}
+    int idx = -1;
+    for (int i = 0; i < kNumAgeClasses - 2; ++i) {
+      if (params_[i] > params_[i + 1]) {
+        idx = i;
+        break;
+      }
+    }
+    assert(idx != -1);
+    for (int i = 0; i < kNumAgeClasses - 1; ++i) {
+      accpm_grad_vector_(i) = 0;
+    }
+    accpm_grad_vector_(idx + 1) = -1;
+    accpm_grad_vector_(idx) = 1;
+
+    // assigning scalar
+    functionValue = params_[idx] - params_[idx + 1];
+
+    // tell oracle it is  feasibility cut
+    if (info != nullptr) {
+      *info = 0;
+    }
   }
 
   memcpy(subGradients.addr(), accpm_grad_vector_.addr(),
          sizeof(double) * accpm_grad_vector_.size());
-
-  if (info != nullptr) {
-    *info = 1;
-  }
 
   return 0;
 }
