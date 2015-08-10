@@ -227,6 +227,33 @@ void BuildTable2(const string dataset, const string classifier_id) {
   }
 }
 
+void BuildBaselineTable(const string dataset, const string classifier_id) {
+  // supervised baseline
+  const string MAE_supervised_SingleGenderNoBetaBmrmOracle =
+      classifier_id + "-ZOLoss-baseline";
+  vector<vector<double>> errors_mae_baseline, stds_mae_baseline;
+  std::cout << "Oracle: " << MAE_supervised_SingleGenderNoBetaBmrmOracle
+            << std::endl;
+  for (int age : {5}) {
+    auto res = ExtractResults<
+        BmrmOracle::SingleGenderNoBetaBmrmOracle<Vilma::MAELoss>>(
+        dataset, MAE_supervised_SingleGenderNoBetaBmrmOracle, age, 3300);
+    errors_mae_baseline.push_back(res.first);
+    stds_mae_baseline.push_back(res.second);
+  }
+
+  std::cout << "Results: " << std::endl;
+  // baseline
+  for (int k = 0; k < errors_mae_baseline.size(); ++k) {
+    const auto &errors = errors_mae_baseline[k];
+    const auto &stds = stds_mae_baseline[k];
+    for (size_t i = 0; i < errors.size(); ++i) {
+      std::cout << errors.at(i) << " +- " << stds.at(i) << " ";
+    }
+    std::cout << std::endl;
+  }
+}
+
 int main(int argc, const char *argv[]) {
 #ifdef LOCAL_HOST
   const string dataset = "morph";
@@ -247,7 +274,8 @@ int main(int argc, const char *argv[]) {
 
 #endif
 
-  BuildTable2(dataset, classifier_id);
+  // BuildTable2(dataset, classifier_id);
+  BuildBaselineTable(dataset, classifier_id);
 
   return 0;
 }
