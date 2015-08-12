@@ -38,9 +38,9 @@ class SingleGenderNoThetaExpBmrmOracle : public BMRM_Solver {
 
   virtual double risk(const double *weights, double *subgrad);
 
-  static std::tuple<double, int> SingleExampleBestAgeLabelLookup(
-      const double wx, const DenseVecD &theta, int from, int to, const int gt_y,
-      const Loss *const loss_ptr_);
+  static int SingleExampleBestAgeLabelLookup(const double wx,
+                                             const DenseVecD &theta,
+                                             const int ny, const int gt_y);
 
   static void ProjectData(const DenseVecD &params, Data *data,
                           double *wx_buffer);

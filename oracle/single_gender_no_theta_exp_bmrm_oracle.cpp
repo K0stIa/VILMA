@@ -208,43 +208,33 @@ double SingleGenderNoThetaExpBmrmOracle<Loss>::EvaluateModel(Data *data,
   const int dim_x = GetDataDim();
   int error = 0;
   DenseVecD theta(data->ny - 1, params + dim_x);
-  DenseVecD beta(data->ny);
-  for (int i = 0; i < data->ny - 1; ++i) {
-    beta[i + 1] = beta[i] - theta[i];
-  }
   for (int ex = 0; ex < num_examples; ++ex) {
     const Vilma::SparseVector<double> &x = *kData.x->GetRow(ex);
     const int y = kData.y->data_[ex];
     const double wx = x.dot<DenseVecD>(DenseVecD(dim_x, params));
-    std::tuple<double, int> res =
+    int pred_y =
         SingleGenderNoThetaExpBmrmOracle<Loss>::SingleExampleBestAgeLabelLookup(
-            wx, beta, 0, kData.ny - 1, y, nullptr);
-    error += loss_(y, std::get<1>(res));
+            wx, theta, kData.ny, y);
+    error += loss_(y, pred_y);
   }
 
   return 1. * error / num_examples;
 }
 
 template <class Loss>
-std::tuple<double, int>
-SingleGenderNoThetaExpBmrmOracle<Loss>::SingleExampleBestAgeLabelLookup(
-    const double wx, const DenseVecD &beta, int from, int to, const int gt_y,
-    const Loss *const loss_ptr_) {
-  double best_cost = 0;
-  int best_y = -1;
-  for (int y = from; y <= to; ++y) {
-    const double cost =
-        (loss_ptr_ != nullptr ? loss_ptr_->operator()(y, gt_y) : 0) + wx * y +
-        beta[y];
-    if (best_y == -1 || best_cost < cost) {
-      best_cost = cost;
-      best_y = y;
+int SingleGenderNoThetaExpBmrmOracle<Loss>::SingleExampleBestAgeLabelLookup(
+    const double wx, const DenseVecD &theta, const int ny, const int gt_y) {
+  int best_y = 0;
+  for (int y = 0; y < ny - 1; ++y) {
+    if (wx >= theta[y]) {
+      best_y = y + 1;
+      break;
     }
   }
 #ifdef USE_ASSERT
   assert(best_y != -1);
 #endif
-  return std::make_tuple(best_cost, best_y);
+  return best_y;
 }
 
 template <class Loss>
