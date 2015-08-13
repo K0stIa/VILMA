@@ -128,9 +128,6 @@ SingleGenderNoBetaBmrmOracle<Loss>::SingleExampleBestAgeLabelLookup(
       best_y = y;
     }
   }
-#ifdef USE_ASSERT
-  assert(best_y != -1);
-#endif
   return std::make_tuple(best_cost, best_y);
 }
 

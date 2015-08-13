@@ -238,13 +238,9 @@ int SingleGenderNoThetaExpBmrmOracle<Loss>::SingleExampleBestAgeLabelLookup(
   int best_y = 0;
   for (int y = 0; y < ny - 1; ++y) {
     if (wx >= theta[y]) {
-      best_y = y + 1;
-      break;
+      ++best_y;
     }
   }
-#ifdef USE_ASSERT
-  assert(best_y != -1);
-#endif
   return best_y;
 }
 
