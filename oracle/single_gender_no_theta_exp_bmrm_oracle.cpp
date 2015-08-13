@@ -95,21 +95,38 @@ double SingleGenderNoThetaExpBmrmOracle<Loss>::UpdateSingleExampleGradient(
   double left_subproblem = 0;
   double right_subproblem = 0;
 
-  if (gt_yl < data_->ny - 1) {
-    left_subproblem = fmax(0.0, 1.0 + wx - theta[gt_yl]);
+  //  if (gt_yl < data_->ny - 1) {
+  //    left_subproblem = fmax(0.0, 1.0 + wx - theta[gt_yl]);
+  //  }
+  //
+  //  if (gt_yr > 0) {
+  //    right_subproblem = fmax(0.0, 1.0 - wx + theta[gt_yr - 1]);
+  //  }
+  //
+  //  double coef = 0;
+  //  if (left_subproblem > 0) {
+  //    ++coef;
+  //  }
+  //  if (right_subproblem > 0) {
+  //    --coef;
+  //  }
+
+  if (gt_yl > 0) {
+    left_subproblem = fmax(0.0, 1.0 - wx + theta[gt_yl - 1]);
   }
 
-  if (gt_yr > 0) {
-    right_subproblem = fmax(0.0, 1.0 - wx + theta[gt_yr - 1]);
+  if (gt_yr < data_->ny - 1) {
+    right_subproblem = fmax(0.0, 1.0 + wx - theta[gt_yr]);
   }
 
   double coef = 0;
   if (left_subproblem > 0) {
-    ++coef;
-  }
-  if (right_subproblem > 0) {
     --coef;
   }
+  if (right_subproblem > 0) {
+    ++coef;
+  }
+
   if (coef) {
     // get reference on curent example
     const Vilma::SparseVector<double> *x = data_->x->GetRow(example_idx);
@@ -350,19 +367,19 @@ double SingleGenderAuxiliaryThetaAccpmOracle<Loss>::UpdateSingleExampleGradient(
 
   double obj = 0;
 
-  if (gt_yl < data_->ny - 1) {
-    double val = 1.0 + wx - theta[gt_yl];
+  if (gt_yl > 0) {
+    double val = 1.0 - wx + theta[gt_yl - 1];
     if (val > 0) {
       obj += val;
-      gradient->data_[gt_yl] -= 1;
+      gradient->data_[gt_yl - 1] += 1;
     }
   }
 
-  if (gt_yr > 0) {
-    double val = 1.0 - wx + theta[gt_yr - 1];
+  if (gt_yr < data_->ny - 1) {
+    double val = 1.0 + wx - theta[gt_yr];
     if (val > 0) {
       obj += val;
-      gradient->data_[gt_yr - 1] += 1;
+      gradient->data_[gt_yr] -= 1;
     }
   }
 
