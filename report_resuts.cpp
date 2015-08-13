@@ -7,6 +7,7 @@
 //
 
 #include "oracle/single_gender_no_beta_bmrm_oracle.h"
+#include "oracle/single_gender_no_theta_exp_bmrm_oracle.h"
 
 #include "dense_vector.h"
 #include "data.h"
