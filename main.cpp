@@ -47,7 +47,7 @@ using DenseVec = Vilma::DenseVector<T>;
 
 typedef DenseVec<double> DenseVecD;
 
-typedef Vilma::ZOLoss Loss;
+typedef Vilma::MAELoss Loss;
 
 typedef BmrmOracleWrapper<VilmaOracle::BetaAuxiliaryOracle<Loss>> ACCPMOracle;
 
