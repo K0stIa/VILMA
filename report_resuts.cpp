@@ -240,7 +240,7 @@ void BuildBaselineTable(const string dataset, const string classifier_id) {
             << std::endl;
   for (int age : {5}) {
     auto res = ExtractResults<
-        BmrmOracle::SingleGenderNoBetaBmrmOracle<Vilma::MAELoss>>(
+        BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss>>(
         dataset, MAE_supervised_SingleGenderNoBetaBmrmOracle, age, 3300);
     errors_mae_baseline.push_back(res.first);
     stds_mae_baseline.push_back(res.second);
