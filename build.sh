@@ -4,7 +4,7 @@ cd build
 local_host=`uname -s`
 echo "local host: $local_host"
 
-CXX_COMPILER=g++-4.7.3
+CXX_COMPILER=g++-4.7
 
 #if  [['$local_host' -eq 'Darwin']]; then
 #echo "Running on mac os"
