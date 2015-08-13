@@ -86,12 +86,6 @@ double SingleGenderNoThetaExpBmrmOracle<Loss>::UpdateSingleExampleGradient(
   const int gt_yl = data_->yl->data_[example_idx];
   const int gt_yr = data_->yr->data_[example_idx];
 
-#ifdef USE_ASSERT
-  assert(0 <= yl && yl < kData.ny);
-  assert(0 <= yr && yr < kData.ny);
-  assert(yl <= yr);
-#endif
-
   double left_subproblem = 0;
   double right_subproblem = 0;
 
