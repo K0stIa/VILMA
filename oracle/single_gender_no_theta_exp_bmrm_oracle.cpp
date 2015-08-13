@@ -320,7 +320,7 @@ int SingleGenderAuxiliaryThetaAccpmOracle<Loss>::eval(
     accpm_grad_vector_(idx) = 1;
 
     // assigning scalar
-    functionValue = -params_[idx] + params_[idx + 1];
+    functionValue = params_[idx] - params_[idx + 1];
 
     // tell oracle it is  feasibility cut
     if (info != nullptr) {
