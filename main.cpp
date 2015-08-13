@@ -176,6 +176,8 @@ void RunExperiment<EXPOracle>(const string &input_dir,
     return;
   }
 
+  std::cout << "TRaining Exp Oracle\n";
+
   EXPOracle oracle(&data);
   oracle.set_lambda(lambda);
 
