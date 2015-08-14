@@ -168,7 +168,7 @@ void BuildTable2(const string dataset, const string classifier_id) {
   std::cout << "Oracle: " << MAE_3300_SingleGenderNoBetaBmrmOracle << std::endl;
   for (int age : age_set) {
     auto res = ExtractResults<
-        BmrmOracle::SingleGenderNoBetaBmrmOracle<Vilma::MAELoss>>(
+        BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss>>(
         dataset, MAE_3300_SingleGenderNoBetaBmrmOracle, age, 3300);
     errors_mae_3300.push_back(res.first);
     stds_mae_3300.push_back(res.second);
@@ -180,7 +180,7 @@ void BuildTable2(const string dataset, const string classifier_id) {
   std::cout << "Oracle: " << MAE_6600_SingleGenderNoBetaBmrmOracle << std::endl;
   for (int age : age_set) {
     auto res = ExtractResults<
-        BmrmOracle::SingleGenderNoBetaBmrmOracle<Vilma::MAELoss>>(
+        BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss>>(
         dataset, MAE_6600_SingleGenderNoBetaBmrmOracle, age, 6600);
     errors_mae_6600.push_back(res.first);
     stds_mae_6600.push_back(res.second);
@@ -194,7 +194,7 @@ void BuildTable2(const string dataset, const string classifier_id) {
             << std::endl;
   for (int age : {5}) {
     auto res = ExtractResults<
-        BmrmOracle::SingleGenderNoBetaBmrmOracle<Vilma::MAELoss>>(
+        BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss>>(
         dataset, MAE_supervised_SingleGenderNoBetaBmrmOracle, age, 3300);
     errors_mae_baseline.push_back(res.first);
     stds_mae_baseline.push_back(res.second);
@@ -279,8 +279,8 @@ int main(int argc, const char *argv[]) {
 
 #endif
 
-  // BuildTable2(dataset, classifier_id);
-  BuildBaselineTable(dataset, classifier_id);
+  BuildTable2(dataset, classifier_id);
+  //  BuildBaselineTable(dataset, classifier_id);
 
   return 0;
 }
