@@ -21,7 +21,9 @@ do
   cat ../../morph_supervised_labeling.txt | sed -n 1,${supervised}p > morph_partial_labeling.txt
   offset=$(($supervised+1))
   cat ../../morph_partial_labeling.txt | sed -n ${offset},${total}p >> morph_partial_labeling.txt
-  cat ../../morph_supervised_labeling.txt | sed -n 1,${total}p > morph_supervised_labeling.txt
+  supervised_begin=$((total+1))
+  supervised_end=$((total+5000))
+  cat ../../morph_supervised_labeling.txt | sed -n ${supervised_begin},${supervised_end}p > morph_supervised_labeling.txt
 
   ./../../../build/train_vilma $(pwd)/morph_features.txt $(pwd)/morph_partial_labeling.txt $(pwd)/model.bin ${featdim} ${nclasees} ${lambda} ${bmrm_cp_buffer_size}
 
