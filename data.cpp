@@ -9,6 +9,9 @@
 #include "data.h"
 
 #include <iostream>
+#include <vector>
+#include <sstream>
+#include <algorithm>
 
 bool LoadData(const std::string& filepath, Data* data,
               const int max_num_examples, const int num_supervised_examples) {
@@ -71,5 +74,95 @@ bool LoadData(const std::string& filepath, Data* data,
   }
 
   file.close();
+  return true;
+}
+
+bool LoadTxtData(const std::string& features_path,
+                 const std::string& labeling_path, const int dim,
+                 const int n_classes, Data* data) {
+  if (data == nullptr) return false;
+
+  std::ifstream feat_file(features_path, std::ios::in);
+  std::ifstream lab_file(labeling_path, std::ios::in);
+  if (!feat_file || !lab_file) return false;
+
+  //  data->x = new Vilma::SparseMatrix<double>(std::min(max_num_examples, n),
+  //  dim);
+  std::vector<int*> indexes;
+  std::vector<double*> values;
+  std::vector<int> non_zero;
+  std::vector<int> lower_labeling, upper_labeling;
+
+  for (std::string feat_line; getline(feat_file, feat_line);) {
+    // read labels
+    int yl, yr;
+    lab_file >> yl >> yr;
+    lower_labeling.push_back(yl);
+    upper_labeling.push_back(yr);
+    // read features
+    // replace secicolons by space
+    for (char& c : feat_line) {
+      if (c == ':') c = ' ';
+    }
+    // split line on tokens
+    std::istringstream iss(feat_line);
+    std::vector<std::string> tokens;
+    std::copy(std::istream_iterator<std::string>(iss),
+              std::istream_iterator<std::string>(),
+              std::back_inserter<std::vector<std::string> >(tokens));
+    // store indexes & values
+    std::vector<int> idxs;
+    std::vector<double> vals;
+    for (size_t i = 0; i < tokens.size(); i += 2) {
+      int idx = std::stoi(tokens[i]);
+      double val = std::stod(tokens[i + 1]);
+      idxs.push_back(idx);
+      vals.push_back(val);
+    }
+    non_zero.push_back((int)idxs.size());
+    int* idx = new int[idxs.size()];
+    double* val = new double[idxs.size()];
+    for (size_t i = 0; i < idxs.size(); ++i) {
+      idx[i] = idxs[i];
+      val[i] = vals[i];
+    }
+    indexes.push_back(idx);
+    values.push_back(val);
+  }
+
+  feat_file.close();
+  lab_file.close();
+
+  // store everythin to data
+  data->x =
+      new Vilma::SparseMatrix<double>(static_cast<int>(values.size()), dim);
+
+  for (size_t i = 0; i < values.size(); ++i) {
+    Vilma::SparseVector<double>* new_row = data->x->GetRow((int)i);
+    new_row->AssignNonZeros(indexes[i], values[i], non_zero[i], dim);
+  }
+  data->yl =
+      new Vilma::DenseVector<int>(static_cast<int>(lower_labeling.size()));
+  for (int i = 0; i < (int)lower_labeling.size(); ++i) {
+    data->yl->data_[i] = lower_labeling[i];
+  }
+  data->yr =
+      new Vilma::DenseVector<int>(static_cast<int>(upper_labeling.size()));
+  for (int i = 0; i < (int)upper_labeling.size(); ++i) {
+    data->yr->data_[i] = upper_labeling[i];
+  }
+  data->y =
+      new Vilma::DenseVector<int>(static_cast<int>(upper_labeling.size()));
+  for (int i = 0; i < (int)upper_labeling.size(); ++i) {
+    data->y->data_[i] = upper_labeling[i];
+  }
+  data->z = nullptr;
+  data->ny =
+      std::max(
+          *std::max_element(lower_labeling.begin(), lower_labeling.end()),
+          *std::max_element(upper_labeling.begin(), upper_labeling.end())) +
+      1;
+  data->nz = -1;
+
   return true;
 }

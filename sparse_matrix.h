@@ -26,7 +26,7 @@ class SparseMatrix {
   bool IsCorrupted() const {
     bool corrupted = false;
     for (int i = 0; i < kRows; ++i) {
-      if (vectors_[i].IsCorrupted ()) {
+      if (vectors_[i].IsCorrupted()) {
         corrupted = true;
         std::cout << "bad example: " << i << std::endl;
       }

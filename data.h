@@ -33,4 +33,8 @@ struct Data {
 bool LoadData(const std::string& filepath, Data* data,
               const int max_num_examples, const int num_supervised_examples);
 
+bool LoadTxtData(const std::string& features_path,
+                 const std::string& labeling_path, const int dim,
+                 const int n_classes, Data* data);
+
 #endif /* defined(__vilma__data__) */
