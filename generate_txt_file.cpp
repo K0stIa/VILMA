@@ -73,8 +73,10 @@ void GenerateTxt(const string &input_dir, const string &output_filename) {
 }
 
 int main(int argc, const char *argv[]) {
-  const string input_dir = argv[1];
-  const string output_dir = argv[2];
+  const string input_dir =
+      "/Users/Shared/research/code/vilma/vilma/data/morph";  // argv[1];
+  const string output_dir =
+      "/Users/Shared/research/code/vilma/vilma/data/morph";  // argv[2];
 
   GenerateTxt(input_dir, output_dir);
 
