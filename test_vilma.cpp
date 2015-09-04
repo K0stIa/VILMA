@@ -76,7 +76,7 @@ void EvaluateExperiment(const string &features_path,
   file.close();
 
   double error = oracle.EvaluateModel(&data, opt_params.data_);
-  std::cout << "error: " << error << endl;
+  std::cout << error << endl;
 }
 
 int main(int argc, const char *argv[]) {

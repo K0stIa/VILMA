@@ -7,9 +7,11 @@ cd demo
 
 featdim=723712
 nclasees=55
-lambda=1.0
+lambda=0.1
 bmrm_cp_buffer_size=300
 supervised=1000
+
+ERROR=""
 
 for experiment_id in 0 1000 2000 3000 4000
 do
@@ -29,13 +31,11 @@ do
 
   ./../../../build/test_vilma $(pwd)/morph_features.txt $(pwd)/morph_supervised_labeling.txt $(pwd)/model.bin ${featdim} ${nclasees} > error.txt
  
+  ERROR="$ERROR, $(tail -n1 'error.txt')"
   cd ..
 done
 
 cd ..
-# for file in "morph_features.txt" "morph_partial_labeling.txt" "morph_supervised_labeling.txt"
-#do
-#  extension="${file##*.}"
-#  filename="${file%.*}"
-#  cat ../${filename}.${extension} | sed -n 1,1000p > demo/${filename}_short.${extension}
-#done
+
+echo "ERROR:""
+echo $ERROR
