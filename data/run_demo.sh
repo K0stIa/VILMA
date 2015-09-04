@@ -11,7 +11,7 @@ lambda=0.1
 bmrm_cp_buffer_size=300
 supervised=1000
 
-ERROR=""
+ERROR="MAE: "
 
 for experiment_id in 0 1000 2000 3000 4000
 do
@@ -37,5 +37,5 @@ done
 
 cd ..
 
-echo "ERROR:""
+echo "ERROR:"
 echo $ERROR
