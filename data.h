@@ -1,10 +1,12 @@
-//
-//  data.h
-//  vilma
-//
-//  Created by Kostia on 2/26/15.
-//  Copyright (c) 2015 Kostia. All rights reserved.
-//
+/*
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Written (W) 2015 Kostiantyn Antoniuk
+ * Copyright (C) 2015 Kostiantyn Antoniuk
+ */
 
 #ifndef __vilma__data__
 #define __vilma__data__
