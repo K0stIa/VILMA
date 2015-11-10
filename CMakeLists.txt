@@ -36,24 +36,24 @@ add_executable(main main.cpp ${BMRM} ${ORACLE} ${SOLVER} ${SRC})
 target_link_libraries(main lapack)
 target_link_libraries(main blas)
 target_link_libraries(main lapackpp)
-target_link_libraries(main ${OBOE}/lib/liboboe.a)
+target_link_libraries(main ${OBOE}/lib/libaccpm.a ${OBOE}/lib/libaccpmcore.a ${OBOE}/lib/libaccpmla.a ${OBOE}/lib/libaccpmoracle.a  ${OBOE}/lib/libaccpmparam.a)
 
 add_executable(report_resuts report_resuts.cpp ${BMRM} ${ORACLE} ${SRC})
 target_link_libraries(report_resuts lapack)
 target_link_libraries(report_resuts blas)
 target_link_libraries(report_resuts lapackpp)
-target_link_libraries(report_resuts ${OBOE}/lib/liboboe.a)
+target_link_libraries(report_resuts ${OBOE}/lib/libaccpm.a ${OBOE}/lib/libaccpmcore.a ${OBOE}/lib/libaccpmla.a ${OBOE}/lib/libaccpmoracle.a  ${OBOE}/lib/libaccpmparam.a)
 
 add_executable(train_vilma train_vilma.cpp ${BMRM} ${ORACLE} ${SRC})
 target_link_libraries(train_vilma lapack)
 target_link_libraries(train_vilma blas)
 target_link_libraries(train_vilma lapackpp)
-target_link_libraries(train_vilma ${OBOE}/lib/liboboe.a)
+target_link_libraries(train_vilma ${OBOE}/lib/libaccpm.a ${OBOE}/lib/libaccpmcore.a ${OBOE}/lib/libaccpmla.a ${OBOE}/lib/libaccpmoracle.a  ${OBOE}/lib/libaccpmparam.a)
 
 add_executable(test_vilma test_vilma.cpp ${BMRM} ${ORACLE} ${SRC})
 target_link_libraries(test_vilma lapack)
 target_link_libraries(test_vilma blas)
 target_link_libraries(test_vilma lapackpp)
-target_link_libraries(test_vilma ${OBOE}/lib/liboboe.a)
+target_link_libraries(test_vilma ${OBOE}/lib/libaccpm.a ${OBOE}/lib/libaccpmcore.a ${OBOE}/lib/libaccpmla.a ${OBOE}/lib/libaccpmoracle.a  ${OBOE}/lib/libaccpmparam.a)
 
 
