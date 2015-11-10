@@ -26,7 +26,7 @@ To build **VILMA** you must have installed the follwing software on your PC:
   - **cmake**
 
 
-To grab code make ``git clone git@bitbucket.org:K0stIa/vilma.git``
+To grab code make ``git clone git@github.com:K0stIa/VILMA.git``
 
 .. code:: bash
 
