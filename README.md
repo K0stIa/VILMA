@@ -1,8 +1,7 @@
 VILMA
 =====
 
-This web-page provides C++ implementation of VILMA which is a algorithm for learning of ordinal classifier 
-from interval annotations.
+VILMA is a algorithm for learning of ordinal classifier from interval annotations.
 
 **Authors:**
   - K.Antoniuk antonkos@cmp.felk.cvut.cz
