@@ -1,3 +1,3 @@
 clearvars; close all;
 
-eval(['mex -v -O mvilma_mex.cc' ' -output ./mvilma_interface']);
+eval(['mex -v -O -largeArrayDims mvilma_mex.cc' ' -output ./mvilma_interface']);
