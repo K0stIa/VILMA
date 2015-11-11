@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstring>
+#include <iostream>
 #include "mex.h"
 #include "data.h"
 #include "sparse_vector.h"
@@ -24,8 +25,6 @@ bool BuildVilmaData(mxArray *sparse_mat, Data *data) {
   const int n = static_cast<int>(n_);
 
   std::cout << "File has " << n << " examples with dim=" << dim << std::endl;
-  std::cout << " Vilma will use " << max_num_examples << " with "
-            << num_supervised_examples << " supervised examples" << std::endl;
 
   data->x = new Vilma::SparseMatrix<double>(n, dim);
 
@@ -38,7 +37,7 @@ bool BuildVilmaData(mxArray *sparse_mat, Data *data) {
     double *vals = new double[non_zero];
 
     for (int j = 0; j < non_zero; ++j) {
-      index[j] = static_cast<int>(irc[j + begin]);
+      index[j] = static_cast<int>(irs[j + begin]);
       vals[j] = sr[j + begin];
     }
 
