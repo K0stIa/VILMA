@@ -1,13 +1,23 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <vector>
+
 #include "mex.h"
+
 #include "data.h"
 #include "sparse_vector.h"
 #include "sparse_matrix.h"
+#include "oracle/pw_single_gender_no_beta_bmrm_oracle.h"
+#include "loss.h"
 
+typedef Vilma::MAELoss Loss;
 
-bool BuildVilmaData(mxArray *sparse_mat, Data *data) {
+typedef BmrmOracle::PwSingleGenderNoBetaBmrmOracle<Vilma::MAELoss> PwOracle;
+
+bool BuildVilmaData(const mxArray *sparse_mat, const mxArray *lower_labels,
+                    const mxArray *expected_labels, const mxArray *upper_labels,
+                    Data *data) {
   if (data == nullptr) return false;
 
   mwSize m_ = mxGetM(sparse_mat);
@@ -16,10 +26,6 @@ bool BuildVilmaData(mxArray *sparse_mat, Data *data) {
   double *sr = mxGetPr(sparse_mat);
   mwIndex *irs = mxGetIr(sparse_mat);
   mwIndex *jcs = mxGetJc(sparse_mat);
-
-  for (mwIndex i = 0; i < nz; ++i) {
-    mexPrintf("x: %d, y: %d, V %f\n", int(irs[i]), int(jcs[i]), sr[i]);
-  }
 
   const int dim = static_cast<int>(m_);
   const int n = static_cast<int>(n_);
@@ -51,19 +57,39 @@ bool BuildVilmaData(mxArray *sparse_mat, Data *data) {
     assert(false);
   }
 
-  data->yl = nullptr;
-  data->yr = nullptr;
-  data->y = nullptr;
-  data->z = nullptr;
-
-//      new Vilma::DenseVector<int>(static_cast<int>(upper_labeling.size()));
-//  for (int i = 0; i < (int)upper_labeling.size(); ++i) {
-//    data->y->data_[i] = upper_labeling[i];
-//  }
+  const mxArray *input_labels[] = {lower_labels, upper_labels, expected_labels};
+  Vilma::DenseVector<int> **data_labels[] = {&data->yl, &data->yr, &data->y};
   data->ny = -1;
+
+  for (int k = 0; k < 3; ++k) {
+    if (input_labels[k] != nullptr) {
+      int *labels = static_cast<int *>(mxGetData(input_labels[k]));
+      Vilma::DenseVector<int> *dl = new Vilma::DenseVector<int>(n);
+      *(data_labels[k]) = dl;
+      for (int t = 0; t < n; ++t) {
+        // vilma label indexin starts from zero !
+        dl->operator[](t) = labels[t] - 1;
+        data->ny = std::max(data->ny, labels[t]);
+      }
+    } else {
+      data_labels[k] = nullptr;
+    }
+  }
+
+  data->z = nullptr;
   data->nz = -1;
 
   return true;
+}
+
+template <class Oracle>
+void TrainClassifier(Data *data, const double lambda,
+                     const int bmrm_buffer_size, const std::vector<int> &cut_labels) {
+  Oracle oracle(data, cut_labels);
+  oracle.set_lambda(lambda);
+  oracle.set_BufSize(bmrm_buffer_size);
+  std::vector<double> opt_w = oracle.learn();
+  const int num_gender = static_cast<int>(opt_w.size()) / data->x->kCols;
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
@@ -86,16 +112,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   }
 
   if (strcmp("train", cmd) == 0) {
-    mwSize m = mxGetM(prhs[1]);
-    mwSize n = mxGetN(prhs[1]);
-    mwSize nz = mxGetNzmax(prhs[1]);
-    double *sr = mxGetPr(prhs[1]);
-    // double *si = mxGetPi(prhs[1]);
-    mwIndex *irs = mxGetIr(prhs[1]);
-    mwIndex *jcs = mxGetJc(prhs[1]);
-    for (mwIndex i = 0; i < nz; ++i) {
-      mexPrintf("x: %d, y: %d, V %f\n", int(irs[i]), int(jcs[i]), sr[i]);
+    if (!mxIsInt32(prhs[2]) || !mxIsInt32(prhs[3]) || !mxIsInt32(prhs[6])) {
+      mexErrMsgTxt("Input labelings(or cut_labels) are not instances of not int32 class.");
+      return;
     }
+
+    Data data;
+    BuildVilmaData(prhs[1], prhs[2], prhs[3], nullptr, &data);
+    // prhs[1] -- sparse feature matrix
     // prhs[2] -- labels
     // prhs[3] -- labels
     // prhs[4] -- n_classes
@@ -109,5 +133,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }
     const double lambda = mxGetScalar(prhs[5]);
     mexPrintf("lambda: %f\n", lambda);
+
+    const int bmrm_buffer_size = 200;
+    
+    mwSize n_cut_labels =  mxGetM(prhs[6]);
+    int* _cut_labels = static_cast<int *>(mxGetData(prhs[6]));
+
+    std::vector<int> cut_labels(_cut_labels, _cut_labels + n_cut_labels);
+
+    mexPrintf("cut_labels\n");
+    for (int x : cut_labels) mexPrintf("%d ", x);
+      mexPrintf("\n");
+
+    TrainClassifier<PwOracle>(&data, lambda, bmrm_buffer_size, cut_labels);
   }
 }

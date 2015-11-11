@@ -1,5 +1,5 @@
 OBOE=$(pwd)/OBOE/dist
-CXX_COMPILER=g++-4.7
+# CXX_COMPILER=g++-4.7
 
 rm -r build
 mkdir build
