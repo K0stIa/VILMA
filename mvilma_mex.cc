@@ -9,14 +9,16 @@
 #include "sparse_vector.h"
 #include "sparse_matrix.h"
 #include "oracle/pw_single_gender_no_beta_bmrm_oracle.h"
+#include  "oracle/single_gender_no_theta_exp_bmrm_oracle.h"
 #include "loss.h"
 
 typedef Vilma::MAELoss Loss;
 
 typedef BmrmOracle::PwSingleGenderNoBetaBmrmOracle<Vilma::MAELoss> PwOracle;
+typedef BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss> SvorImc;
 
 bool BuildVilmaData(const mxArray *sparse_mat, const mxArray *lower_labels,
-                    const mxArray *expected_labels, const mxArray *upper_labels,
+                    const mxArray *upper_labels, const mxArray *expected_labels,
                     Data *data) {
   if (data == nullptr) return false;
 
@@ -29,8 +31,6 @@ bool BuildVilmaData(const mxArray *sparse_mat, const mxArray *lower_labels,
 
   const int dim = static_cast<int>(m_);
   const int n = static_cast<int>(n_);
-
-  std::cout << "File has " << n << " examples with dim=" << dim << std::endl;
 
   data->x = new Vilma::SparseMatrix<double>(n, dim);
 
@@ -83,13 +83,23 @@ bool BuildVilmaData(const mxArray *sparse_mat, const mxArray *lower_labels,
 }
 
 template <class Oracle>
-void TrainClassifier(Data *data, const double lambda,
-                     const int bmrm_buffer_size, const std::vector<int> &cut_labels) {
+void TrainPwClassifier(Data *data, const double lambda,
+                     const int bmrm_buffer_size,
+                     const std::vector<int> &cut_labels) {
   Oracle oracle(data, cut_labels);
   oracle.set_lambda(lambda);
   oracle.set_BufSize(bmrm_buffer_size);
   std::vector<double> opt_w = oracle.learn();
   const int num_gender = static_cast<int>(opt_w.size()) / data->x->kCols;
+}
+
+template <class Oracle>
+std::vector<double> TrainClassifier(Data *data, const double lamda,
+                                    const int bmrm_buffer_size) {
+  Oracle oracle(data);
+  oracle.set_lambda(lamda);
+  oracle.set_BufSize(bmrm_buffer_size);
+  return oracle.learn();
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
@@ -113,7 +123,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
   if (strcmp("train", cmd) == 0) {
     if (!mxIsInt32(prhs[2]) || !mxIsInt32(prhs[3]) || !mxIsInt32(prhs[6])) {
-      mexErrMsgTxt("Input labelings(or cut_labels) are not instances of not int32 class.");
+      mexErrMsgTxt(
+          "Input labelings(or cut_labels) are not instances of not int32 "
+          "class.");
       return;
     }
 
@@ -135,16 +147,53 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     mexPrintf("lambda: %f\n", lambda);
 
     const int bmrm_buffer_size = 200;
-    
-    mwSize n_cut_labels =  mxGetM(prhs[6]);
-    int* _cut_labels = static_cast<int *>(mxGetData(prhs[6]));
+
+    mwSize n_cut_labels = mxGetM(prhs[6]);
+    int *_cut_labels = static_cast<int *>(mxGetData(prhs[6]));
 
     std::vector<int> cut_labels(_cut_labels, _cut_labels + n_cut_labels);
 
     mexPrintf("cut_labels\n");
     for (int x : cut_labels) mexPrintf("%d ", x);
-      mexPrintf("\n");
+    mexPrintf("\n");
 
-    TrainClassifier<PwOracle>(&data, lambda, bmrm_buffer_size, cut_labels);
+    TrainPwClassifier<PwOracle>(&data, lambda, bmrm_buffer_size, cut_labels);
+  } else if (strcmp("vilma-mae", cmd) == 0) {
+    if (!mxIsInt32(prhs[2]) || !mxIsInt32(prhs[3])) {
+      mexErrMsgTxt(
+          "Input labelings(or cut_labels) are not instances of not int32 "
+          "class.");
+      return;
+    }
+
+    Data data;
+    BuildVilmaData(prhs[1], prhs[2], prhs[3], nullptr, &data);
+    // prhs[1] -- sparse feature matrix
+    // prhs[2] -- labels
+    // prhs[3] -- labels
+    // prhs[4] -- n_classes
+    // prhs[5] -- lambda
+
+    const int n_classes = mxGetScalar(prhs[4]);
+    mexPrintf("n_classes: %d \n", n_classes);
+    data.ny = n_classes;
+
+    if (!mxIsDouble(prhs[5])) {
+      mexPrintf("terminating... lambda should be a real number");
+      return;
+    }
+    const double lambda = mxGetScalar(prhs[5]);
+    mexPrintf("lambda: %f\n", lambda);
+
+    const int bmrm_buffer_size = 200;
+    std::vector<double> opt_w = TrainClassifier<SvorImc>(&data, lambda, bmrm_buffer_size);
+
+    if (nlhs >= 1) {
+      plhs[0] = mxCreateDoubleMatrix((int)opt_w.size(), 1, mxREAL);
+      double *w = mxGetPr(plhs[0]);
+      for (int i = 0; i < (int) opt_w.size(); ++i) {
+        w[i] = opt_w[i];
+      }
+    }
   }
 }
