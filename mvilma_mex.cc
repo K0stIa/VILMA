@@ -8,14 +8,17 @@
 #include "data.h"
 #include "sparse_vector.h"
 #include "sparse_matrix.h"
+#include "dense_vector.h"
 #include "oracle/pw_single_gender_no_beta_bmrm_oracle.h"
-#include  "oracle/single_gender_no_theta_exp_bmrm_oracle.h"
+#include "oracle/single_gender_no_theta_exp_bmrm_oracle.h"
 #include "loss.h"
 
 typedef Vilma::MAELoss Loss;
 
 typedef BmrmOracle::PwSingleGenderNoBetaBmrmOracle<Vilma::MAELoss> PwOracle;
 typedef BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss> SvorImc;
+
+typedef Vilma::DenseVector<double> DenseVecD;
 
 bool BuildVilmaData(const mxArray *sparse_mat, const mxArray *lower_labels,
                     const mxArray *upper_labels, const mxArray *expected_labels,
@@ -84,13 +87,12 @@ bool BuildVilmaData(const mxArray *sparse_mat, const mxArray *lower_labels,
 
 template <class Oracle>
 void TrainPwClassifier(Data *data, const double lambda,
-                     const int bmrm_buffer_size,
-                     const std::vector<int> &cut_labels) {
+                       const int bmrm_buffer_size,
+                       const std::vector<int> &cut_labels) {
   Oracle oracle(data, cut_labels);
   oracle.set_lambda(lambda);
   oracle.set_BufSize(bmrm_buffer_size);
   std::vector<double> opt_w = oracle.learn();
-  const int num_gender = static_cast<int>(opt_w.size()) / data->x->kCols;
 }
 
 template <class Oracle>
@@ -99,7 +101,30 @@ std::vector<double> TrainClassifier(Data *data, const double lamda,
   Oracle oracle(data);
   oracle.set_lambda(lamda);
   oracle.set_BufSize(bmrm_buffer_size);
-  return oracle.learn();
+
+  std::vector<double> opt_w = oracle.learn();
+
+  const int num_gender = static_cast<int>(opt_w.size()) / data->x->kCols;
+
+  DenseVecD W((int)opt_w.size(), &opt_w[0]);
+  std::vector<double> wx(data->x->kRows * num_gender);
+  Oracle::ProjectData(W, data, &wx[0]);
+
+  // Learn theta
+  DenseVecD theta((data->ny - 1) * num_gender);
+  Oracle::TrainTheta(&theta, data, &wx[0]);
+
+  // glue W and beta to single vector
+  std::vector<double> opt_params(W.dim_ + theta.dim_);
+
+  for (int i = 0; i < W.dim_; ++i) opt_params[i] = W[i];
+
+  for (int i = 0; i < theta.dim_; ++i) {
+    opt_params[W.dim_ + i] = theta[i];
+    assert(W.dim_ + i < (int)opt_params.size());
+  }
+
+  return opt_params;
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
@@ -186,12 +211,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     mexPrintf("lambda: %f\n", lambda);
 
     const int bmrm_buffer_size = 200;
-    std::vector<double> opt_w = TrainClassifier<SvorImc>(&data, lambda, bmrm_buffer_size);
+    std::vector<double> opt_w =
+        TrainClassifier<SvorImc>(&data, lambda, bmrm_buffer_size);
 
     if (nlhs >= 1) {
       plhs[0] = mxCreateDoubleMatrix((int)opt_w.size(), 1, mxREAL);
       double *w = mxGetPr(plhs[0]);
-      for (int i = 0; i < (int) opt_w.size(); ++i) {
+      for (int i = 0; i < (int)opt_w.size(); ++i) {
         w[i] = opt_w[i];
       }
     }
