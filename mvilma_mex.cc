@@ -11,13 +11,14 @@
 #include "dense_vector.h"
 #include "oracle/pw_single_gender_no_beta_bmrm_oracle.h"
 #include "oracle/single_gender_no_theta_exp_bmrm_oracle.h"
+#include "oracle/single_gender_no_beta_bmrm_oracle.h"
 #include "loss.h"
 
 typedef Vilma::MAELoss Loss;
 
 typedef BmrmOracle::PwSingleGenderNoBetaBmrmOracle<Vilma::MAELoss> PwOracle;
 typedef BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss> SvorImc;
-
+typedef BmrmOracle::SingleGenderNoBetaBmrmOracle<Vilma::MAELoss> VilmaMae;
 typedef Vilma::DenseVector<double> DenseVecD;
 
 bool BuildVilmaData(const mxArray *sparse_mat, const mxArray *lower_labels,
@@ -96,6 +97,30 @@ void TrainPwClassifier(Data *data, const double lambda,
 }
 
 template <class Oracle>
+std::vector<double> LearnTailParameters(Data *data, double *wx, const int num_gender) {
+  DenseVecD theta(data->ny * num_gender);
+  Oracle::TrainBeta(&theta, data, &wx[0]);
+ 
+  std::vector<double> tail_params(theta.dim_);
+  for (int i = 0; i < theta.dim_; ++i) {
+    tail_params[i] = theta[i];
+  }
+  return tail_params;
+}
+
+template<>
+std::vector<double> LearnTailParameters<SvorImc>(Data *data, double *wx, const int num_gender) {
+  DenseVecD theta((data->ny - 1) * num_gender);
+  SvorImc::TrainTheta(&theta, data, &wx[0]);
+ 
+  std::vector<double> tail_params(theta.dim_);
+  for (int i = 0; i < theta.dim_; ++i) {
+    tail_params[i] = theta[i];
+  }
+  return tail_params;
+}
+
+template <class Oracle>
 std::vector<double> TrainClassifier(Data *data, const double lamda,
                                     const int bmrm_buffer_size) {
   Oracle oracle(data);
@@ -110,21 +135,12 @@ std::vector<double> TrainClassifier(Data *data, const double lamda,
   std::vector<double> wx(data->x->kRows * num_gender);
   Oracle::ProjectData(W, data, &wx[0]);
 
-  // Learn theta
-  DenseVecD theta((data->ny - 1) * num_gender);
-  Oracle::TrainTheta(&theta, data, &wx[0]);
+  // Learn non-regularized parameters
+  std::vector<double> tail_params = LearnTailParameters<Oracle>(data, &wx[0], num_gender);
+  
+  opt_w.insert(opt_w.end(), tail_params.begin(), tail_params.end());
 
-  // glue W and beta to single vector
-  std::vector<double> opt_params(W.dim_ + theta.dim_);
-
-  for (int i = 0; i < W.dim_; ++i) opt_params[i] = W[i];
-
-  for (int i = 0; i < theta.dim_; ++i) {
-    opt_params[W.dim_ + i] = theta[i];
-    assert(W.dim_ + i < (int)opt_params.size());
-  }
-
-  return opt_params;
+  return opt_w;
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
@@ -183,7 +199,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     mexPrintf("\n");
 
     TrainPwClassifier<PwOracle>(&data, lambda, bmrm_buffer_size, cut_labels);
-  } else if (strcmp("vilma-mae", cmd) == 0) {
+  } else if (strcmp("vilma-svor", cmd) == 0 || strcmp("vilma-mae", cmd) == 0) {
     if (!mxIsInt32(prhs[2]) || !mxIsInt32(prhs[3])) {
       mexErrMsgTxt(
           "Input labelings(or cut_labels) are not instances of not int32 "
@@ -211,9 +227,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     mexPrintf("lambda: %f\n", lambda);
 
     const int bmrm_buffer_size = 200;
-    std::vector<double> opt_w =
-        TrainClassifier<SvorImc>(&data, lambda, bmrm_buffer_size);
-
+    std::vector<double> opt_w;
+    if (strcmp("vilma-svor", cmd) == 0) {
+      opt_w = TrainClassifier<SvorImc>(&data, lambda, bmrm_buffer_size);
+    } else if (strcmp("vilma-mae", cmd) == 0) {
+      opt_w = TrainClassifier<VilmaMae>(&data, lambda, bmrm_buffer_size);
+    }
     if (nlhs >= 1) {
       plhs[0] = mxCreateDoubleMatrix((int)opt_w.size(), 1, mxREAL);
       double *w = mxGetPr(plhs[0]);
