@@ -11,6 +11,7 @@
 #include "data.h"
 
 #include <iostream>
+#include <iterator>
 #include <vector>
 #include <sstream>
 #include <algorithm>

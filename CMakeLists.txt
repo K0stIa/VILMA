@@ -8,7 +8,6 @@ cmake_minimum_required(VERSION 2.8)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 
-include(mex)
 
 include(CheckCXXCompilerFlag)
 
@@ -59,12 +58,20 @@ target_link_libraries(test_vilma ${OBOE_LIBS})
 # ADD_MATLAB_MEX_FILE(mvilma mvilma_mex.cc sparse_matrix.h sparse_matrix.hpp sparse_vector.h sparse_vector.hpp)
 # target_link_libraries(mvilma LINK_PRIVATE ${MEX_LIBRARIES} ${MATLAB_ENGINE_LIBRARIES})
 
+set(CMAKE_CC_COMPILER "/usr/bin/gcc-4.7.3")
+set(CMAKE_CXX_COMPILER "/usr/bin/g++-4.7.3")
+set(MEX_CXX "g++-4.7.3")
+set(MEX_CC "gcc-4.7.3")
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
 set(MEX_LDFLAGS "-Wl,-rpath")
 set(MEX_LINK_LIBS "${OBOE_LIBS};stdc++" CACHE STRING "External libraries to link to this mex file." FORCE)
+set(MEX_CXXFLAGS "-largeArrayDims")
+set(MATLAB_ROOT "/usr/local/matlab801")
 
+include(mex)
 add_mex(mvilma mvilma_mex.cc ${ORACLE} ${SRC} ${BMRM})
-target_link_libraries(mvilma lapack)
-target_link_libraries(mvilma blas)
-target_link_libraries(mvilma lapackpp)
+#target_link_libraries(mvilma lapack)
+#target_link_libraries(mvilma blas)
+#target_link_libraries(mvilma lapackpp)
+
 target_link_libraries(mvilma ${OBOE_LIBS})
