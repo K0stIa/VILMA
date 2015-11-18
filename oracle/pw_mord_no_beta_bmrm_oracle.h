@@ -8,13 +8,14 @@
  * Copyright (C) 2015 Kostiantyn Antoniuk
  */
 
-#ifndef __sparse_sgd__pw_single_gender_no_beta_bmrm_oracle__
-#define __sparse_sgd__pw_single_gender_no_beta_bmrm_oracle__
+#ifndef __sparse_sgd__pw_mord_no_beta_bmrm_oracle__
+#define __sparse_sgd__pw_mord_no_beta_bmrm_oracle__
 
 #include <stdio.h>
 #include <vector>
 
 #include "../bmrm/bmrm_solver.h"
+#include "pw_single_gender_no_beta_bmrm_oracle.h"
 #include "dense_vector.h"
 
 #include "Oracle.h"
@@ -27,39 +28,19 @@ typedef Vilma::DenseVector<double> DenseVecD;
 typedef Vilma::DenseVectorView<double> DenseVecDView;
 
 template <class Loss>
-class PwSingleGenderNoBetaBmrmOracle : public BMRM_Solver {
+class PwMordNoBetaBmrmOracle : public PwSingleGenderNoBetaBmrmOracle<Loss> {
  public:
-  PwSingleGenderNoBetaBmrmOracle() = delete;
+  PwMordNoBetaBmrmOracle() = delete;
 
-  PwSingleGenderNoBetaBmrmOracle(Data *data,
-                                 const std::vector<int> &cut_labels);
-  virtual ~PwSingleGenderNoBetaBmrmOracle();
-
-  int GetDataDim();
-  int GetOracleParamsDim();
-  int GetDataNumExamples();
-  int GetDataNumAgeClasses();
+  PwMordNoBetaBmrmOracle(Data *data, const std::vector<int> &cut_labels);
+  virtual ~PwMordNoBetaBmrmOracle();
 
   virtual double risk(const double *weights, double *subgrad);
 
-  static std::pair<double, int> SingleExampleBestAgeLabelLookup222(
-      const double *wx, const double *alpha, const double *beta, int from,
-      int to, const int gt_y, const int kPW, const Loss *const loss_ptr_);
-
-  double EvaluateModel(Data *data, double *params);
-
-  static void ProjectData(const DenseVecD &params, Data *data,
-                          double *wx_buffer, const int kPW);
   static void TrainBeta(DenseVecD *beta, Data *data, double *wx_buffer,
                         double *alpha_buffer_, const int kPW);
 
-  const int kPW;
-  // store cut labels coef
-  double *alpha_buffer_;
-
  protected:
-  using BMRM_Solver::dim;
-
   /**
    * Single example gradient computation
    */
@@ -68,23 +49,15 @@ class PwSingleGenderNoBetaBmrmOracle : public BMRM_Solver {
                                      const DenseVecD &beta, const double *wx,
                                      const int example_idx,
                                      DenseVecD *gradient);
-
-  Loss loss_;
-  // Oracle is never an owner of Data
-  Data *data_ = nullptr;
-  // buffer to store results <w,x> for all x
-  double *wx_buffer_ = nullptr;
-  // buffer to store betas
-  DenseVecD beta_;
 };
 
 template <class Loss>
-class PwSingleGenderAuxiliaryBetaAccpmOracle : public Accpm::OracleFunction {
+class PwMordAuxiliaryBetaAccpmOracle : public Accpm::OracleFunction {
  public:
-  PwSingleGenderAuxiliaryBetaAccpmOracle(Data *data, double *wx, double *alpha,
-                                         const int kPW);
+  PwMordAuxiliaryBetaAccpmOracle(Data *data, double *wx, double *alpha,
+                                 const int kPW);
 
-  ~PwSingleGenderAuxiliaryBetaAccpmOracle();
+  ~PwMordAuxiliaryBetaAccpmOracle();
   void UpdateWX(const double *wx);
 
   virtual int eval(const Accpm::AccpmVector &y,
@@ -108,4 +81,4 @@ class PwSingleGenderAuxiliaryBetaAccpmOracle : public Accpm::OracleFunction {
 };
 }
 
-#endif /* defined(__sparse_sgd__pw_single_gender_no_beta_bmrm_oracle__) */
+#endif /* defined(__sparse_sgd__pw_mord_no_beta_bmrm_oracle__) */

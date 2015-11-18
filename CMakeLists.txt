@@ -68,3 +68,8 @@ target_link_libraries(mvilma lapack)
 target_link_libraries(mvilma blas)
 target_link_libraries(mvilma lapackpp)
 target_link_libraries(mvilma ${OBOE_LIBS})
+
+# test
+add_executable(train_pw_vilma train_pw_vilma.cpp ${BMRM} ${ORACLE} ${SRC})
+target_link_libraries(train_pw_vilma ${OBOE_LIBS})
+

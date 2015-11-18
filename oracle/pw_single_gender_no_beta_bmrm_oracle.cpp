@@ -19,6 +19,7 @@
 
 #include <iostream>
 #include <memory>
+#include <algorithm>
 
 using namespace BmrmOracle;
 
@@ -30,7 +31,11 @@ PwSingleGenderNoBetaBmrmOracle<Loss>::PwSingleGenderNoBetaBmrmOracle(
       BMRM_Solver(data->x->kCols * (int)cut_labels.size()),
       beta_(data->ny) {
   wx_buffer_ = new double[data_->x->kRows * kPW];
-  alpha_buffer_ = new double[kPW * data->ny];
+  alpha_buffer_ = new double[kPW * (data->ny + 1)];
+
+  std::fill(alpha_buffer_, alpha_buffer_ + kPW * data->ny, 0);
+  std::fill(wx_buffer_, wx_buffer_ + kPW * data->ny, 0);
+
   // init alpha
 
   const int ny = data->ny;
@@ -90,16 +95,7 @@ double PwSingleGenderNoBetaBmrmOracle<Loss>::risk(const double *weights,
 
   gradient.fill(0);
 
-  // TODO: train beta
-  static bool first = false;
-  if (first) {
-    for (int i = 0; i < beta_.dim_; ++i) beta_.data_[i] = 0;
-    first = false;
-  } else {
-    TrainBeta(&beta_, data_, wx_buffer_, alpha_buffer_, kPW);
-    //    for (int i = 0; i < data_->ny; ++i)
-    //      beta_.data_[i] = params.data_[kPW * GetDataDim() + i];
-  }
+  TrainBeta(&beta_, data_, wx_buffer_, alpha_buffer_, kPW);
 
   double *wx = wx_buffer_;
   double obj = 0;
@@ -121,10 +117,6 @@ void PwSingleGenderNoBetaBmrmOracle<Loss>::ProjectData(const DenseVecD &params,
                                                        Data *data,
                                                        double *wx_buffer,
                                                        const int kPW) {
-#ifdef USE_ASSERT
-  assert(wx_buffer_ != nullptr);
-#endif
-
   const int dim_x = data->x->kCols;
   // create weight components
   vector<std::unique_ptr<DenseVecD>> w(kPW);
@@ -432,7 +424,9 @@ PwSingleGenderAuxiliaryBetaAccpmOracle<Loss>::UpdateSingleExampleGradient(
 }
 
 template class BmrmOracle::PwSingleGenderNoBetaBmrmOracle<Vilma::MAELoss>;
-template class BmrmOracle::PwSingleGenderAuxiliaryBetaAccpmOracle<Vilma::MAELoss>;
+template class BmrmOracle::PwSingleGenderAuxiliaryBetaAccpmOracle<
+    Vilma::MAELoss>;
 
 template class BmrmOracle::PwSingleGenderNoBetaBmrmOracle<Vilma::ZOLoss>;
-template class BmrmOracle::PwSingleGenderAuxiliaryBetaAccpmOracle<Vilma::ZOLoss>;
+template class BmrmOracle::PwSingleGenderAuxiliaryBetaAccpmOracle<
+    Vilma::ZOLoss>;
