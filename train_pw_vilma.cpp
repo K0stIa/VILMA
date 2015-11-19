@@ -46,15 +46,13 @@ void RunExperiment(const string &features_path, const string &labeling_path,
     return;
   }
 
-  vector<int> cut;
-  //  for (int i = 0; i < data.ny; i += 20) {
-  //    cut.push_back(i);
+  vector<int> cut = {0, 3, 6, 9};
+
+  //  cut.push_back(0);
+  //  cut.push_back(data.ny / 2);
+  //  if (cut.size() && cut.back() != data.ny - 1) {
+  //    cut.push_back(data.ny - 1);
   //  }
-  cut.push_back(0);
-  cut.push_back(data.ny / 2);
-  if (cut.size() && cut.back() != data.ny - 1) {
-    cut.push_back(data.ny - 1);
-  }
 
   Oracle oracle(&data, cut);
   oracle.set_lambda(lambda);
