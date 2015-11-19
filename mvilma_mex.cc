@@ -12,13 +12,15 @@
 #include "oracle/pw_mord_no_beta_bmrm_oracle.h"
 #include "oracle/single_gender_no_theta_exp_bmrm_oracle.h"
 #include "oracle/single_gender_no_beta_bmrm_oracle.h"
+#include "oracle/svor_imc.hpp"
 #include "loss.h"
 
 typedef Vilma::MAELoss Loss;
 
 typedef BmrmOracle::PwMordNoBetaBmrmOracle<Vilma::MAELoss> PwOracle;
 // typedef BmrmOracle::PwSingleGenderNoBetaBmrmOracle<Vilma::MAELoss> PwOracle;
-typedef BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss> SvorImc;
+// typedef BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss> SvorImc;
+typedef BmrmOracle::SvorImc<Vilma::MAELoss> SvorImc;
 typedef BmrmOracle::SingleGenderNoBetaBmrmOracle<Vilma::MAELoss> VilmaMae;
 typedef Vilma::DenseVector<double> DenseVecD;
 
@@ -251,7 +253,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
       }
     }
 
-  } else if (strcmp("vilma-svor", cmd) == 0 || strcmp("vilma-mae", cmd) == 0) {
+  } else if (strcmp("svorimc", cmd) == 0 || strcmp("vilma-mae", cmd) == 0) {
     if (!mxIsInt32(prhs[2]) || !mxIsInt32(prhs[3])) {
       mexErrMsgTxt(
           "Input labelings(or cut_labels) are not instances of not int32 "
@@ -280,7 +282,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
     const int bmrm_buffer_size = 500;
     std::vector<double> opt_w;
-    if (strcmp("vilma-svor", cmd) == 0) {
+    if (strcmp("svorimc", cmd) == 0) {
       opt_w = TrainClassifier<SvorImc>(&data, lambda, bmrm_buffer_size);
     } else if (strcmp("vilma-mae", cmd) == 0) {
       opt_w = TrainClassifier<VilmaMae>(&data, lambda, bmrm_buffer_size);
