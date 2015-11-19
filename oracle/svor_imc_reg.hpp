@@ -44,7 +44,6 @@ class SvorImcReg : public BMRM_Solver {
 
   static void ProjectData(const DenseVecD &params, Data *data,
                           double *wx_buffer);
-  static void TrainTheta(DenseVecD *theta, Data *data, double *wx_buffer);
 
   double EvaluateModel(Data *data, double *params);
 
