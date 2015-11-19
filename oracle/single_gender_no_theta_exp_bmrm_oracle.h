@@ -90,7 +90,6 @@ class SingleGenderAuxiliaryThetaAccpmOracle : public Accpm::OracleFunction {
                                      const int example_idx,
                                      DenseVecD *gradient);
 
- private:
   const int kNumAgeClasses;
   DenseVecD params_, gradient_;
   Data *data_;

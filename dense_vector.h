@@ -41,19 +41,9 @@ class DenseVector : public VectorInterface {
   /**
    * index access
    */
-  T &operator[](int i) {
-#ifdef USE_ASSERT
-    assert(0 <= i && i < dim_);
-#endif
-    return data_[i];
-  }
+  T &operator[](int i) { return data_[i]; }
 
-  const T &operator[](int i) const {
-#ifdef USE_ASSERT
-    assert(0 <= i && i < dim_);
-#endif
-    return data_[i];
-  }
+  const T &operator[](int i) const { return data_[i]; }
 
   /** First check if it is non empty */
   const T max() const {

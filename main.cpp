@@ -20,6 +20,7 @@
 #include "oracle/sgd_age_oracle.h"
 #include "oracle/single_gender_no_beta_bmrm_oracle.h"
 #include "oracle/single_gender_no_theta_exp_bmrm_oracle.h"
+#include "oracle/svor_imc_reg.hpp"
 
 #include "Oracle.h"
 #include "QpGenerator.h"
@@ -38,11 +39,11 @@ using namespace std;
 // template <class Loss>
 // using Oracle = SgdOracle::TightGenderSupervisedOracle<Loss>;
 
-template <class Loss>
-using AgeOracle = VilmaOracle::AgeOracle<Loss>;
+// template <class Loss>
+// using AgeOracle = VilmaOracle::AgeOracle<Loss>;
 
-template <class Oracle>
-using BmrmOracleWrapper = VilmaOracle::BmrmOracleWrapper<Oracle>;
+// template <class Oracle>
+// using BmrmOracleWrapper = VilmaOracle::BmrmOracleWrapper<Oracle>;
 
 template <class T>
 using DenseVec = Vilma::DenseVector<T>;
@@ -51,7 +52,8 @@ typedef DenseVec<double> DenseVecD;
 
 typedef Vilma::MAELoss Loss;
 
-typedef BmrmOracleWrapper<VilmaOracle::BetaAuxiliaryOracle<Loss>> ACCPMOracle;
+// typedef BmrmOracleWrapper<VilmaOracle::BetaAuxiliaryOracle<Loss>>
+// ACCPMOracle;
 
 typedef BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Loss> EXPOracle;
 
@@ -431,7 +433,8 @@ void RunExperimentWithFullReg(const string &input_dir,
   std::cout << "Data loaded\n";
 
   Oracle atomic_oracle(&data);
-  VilmaOracle::BmrmOracleWrapper<Oracle> oracle(&atomic_oracle, true);
+  //  VilmaOracle::BmrmOracleWrapper<Oracle> oracle(&atomic_oracle, true);
+  Oracle oracle(&data);
   oracle.set_lambda(lambda);
 
   if (lambda >= 1.0) {
@@ -516,8 +519,10 @@ int main(int argc, const char *argv[]) {
 
   oracle_name = oracle_name.substr(0, oracle_name.find('-'));
 
-  if (0) {
-    RunExperimentTheta(input_dir, output_dir, lambda, supervised, fraction);
+  if (oracle_name == "SvorImcReg") {
+    // RunExperimentTheta(input_dir, output_dir, lambda, supervised, fraction);
+    RunExperimentWithFullReg<BmrmOracle::SvorImcReg<Vilma::MAELoss>>(
+        input_dir, output_dir, lambda, supervised, fraction);
   } else if (oracle_name == "SingleGenderNoBetaBmrmOracle") {
     //
     RunExperiment<BmrmOracle::SingleGenderNoBetaBmrmOracle<Loss>>(
@@ -529,8 +534,9 @@ int main(int argc, const char *argv[]) {
 
   } else if (oracle_name == "SingleGenderAgeBmrmOracle") {
     //
-    RunExperimentWithFullReg<VilmaOracle::AgeOracle<Loss>>(
-        input_dir, output_dir, lambda, supervised, fraction);
+    //    RunExperimentWithFullReg<VilmaOracle::AgeOracle<Loss>>(
+    //        input_dir, output_dir, lambda, supervised, fraction);
+    cout << "Oracle " << oracle_name << " is not supported!" << endl;
   } else {
     cout << "Oracle " << oracle_name << " is not supported!" << endl;
   }
