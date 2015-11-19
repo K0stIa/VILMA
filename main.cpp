@@ -21,6 +21,7 @@
 #include "oracle/single_gender_no_beta_bmrm_oracle.h"
 #include "oracle/single_gender_no_theta_exp_bmrm_oracle.h"
 #include "oracle/svor_imc_reg.hpp"
+#include "oracle/svor_imc.hpp"
 
 #include "Oracle.h"
 #include "QpGenerator.h"
@@ -89,16 +90,15 @@ void RunExperiment(const string &input_dir, const string &output_filename,
   // train W weights
   vector<double> opt_w = oracle.learn();
 
-  const int num_gender = (int)opt_w.size() / data.x->kCols;
-
   // project data
   DenseVecD W((int)opt_w.size(), &opt_w[0]);
-  vector<double> wx(data.x->kRows * num_gender);
+  vector<double> wx(data.x->kRows);
   Oracle::ProjectData(W, &data, &wx[0]);
 
   // Learn beta
-  DenseVecD beta(data.ny * num_gender);
-  Oracle::TrainBeta(&beta, &data, &wx[0]);
+  DenseVecD beta(data.ny - 1);
+  // TODO: make proper method in class
+  Oracle::TrainTheta(&beta, &data, &wx[0]);
 
   // print learning time
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -525,12 +525,12 @@ int main(int argc, const char *argv[]) {
         input_dir, output_dir, lambda, supervised, fraction);
   } else if (oracle_name == "SingleGenderNoBetaBmrmOracle") {
     //
-    RunExperiment<BmrmOracle::SingleGenderNoBetaBmrmOracle<Loss>>(
-        input_dir, output_dir, lambda, supervised, fraction);
-  } else if (oracle_name == "SingleGenderNoThetaExpBmrmOracle") {
+    //    RunExperiment<BmrmOracle::SingleGenderNoBetaBmrmOracle<Loss>>(
+    //        input_dir, output_dir, lambda, supervised, fraction);
+  } else if (oracle_name == "SvorImc") {
     //
-    RunExperiment<EXPOracle>(input_dir, output_dir, lambda, supervised,
-                             fraction);
+    RunExperiment<BmrmOracle::SvorImc<Vilma::MAELoss>>(
+        input_dir, output_dir, lambda, supervised, fraction);
 
   } else if (oracle_name == "SingleGenderAgeBmrmOracle") {
     //
