@@ -16,8 +16,10 @@
 #include "sparse_vector.h"
 
 #include "oracle/ordinal_regression.h"
+#include "oracle/ordinal_regression.hpp"
 #include "oracle/svor_imc_reg.h"
 #include "oracle/svor_imc.h"
+#include "oracle/mord.h"
 
 #include <string>
 #include <fstream>
@@ -146,10 +148,9 @@ int main(int argc, const char *argv[]) {
     // RunExperimentTheta(input_dir, output_dir, lambda, supervised, fraction);
     RunExperiment<VilmaOracle::SvorImcReg, Vilma::MAELoss>(
         input_dir, output_dir, lambda, supervised, fraction);
-  } else if (oracle_name == "SingleGenderNoBetaBmrmOracle") {
-    //
-    //    RunExperiment<BmrmOracle::SingleGenderNoBetaBmrmOracle<Loss>>(
-    //        input_dir, output_dir, lambda, supervised, fraction);
+  } else if (oracle_name == "MOrd") {
+    RunExperiment<VilmaOracle::MOrd<Loss>, Loss>(input_dir, output_dir, lambda,
+                                                 supervised, fraction);
   } else if (oracle_name == "SvorImc") {
     RunExperiment<VilmaOracle::SvorImc, Vilma::MAELoss>(
         input_dir, output_dir, lambda, supervised, fraction);

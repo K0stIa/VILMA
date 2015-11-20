@@ -29,6 +29,7 @@ class SvorExp : public SvorImc {
   using SvorImc::GetOracleParamsDim;
   using SvorImc::SingleExampleBestLabelLookup;
   using SvorImc::ProjectData;
+  using SvorImc::risk;
   using SvorImc::Train;
 
   virtual double UpdateSingleExampleGradient(
@@ -40,6 +41,7 @@ class SvorExp : public SvorImc {
   using SvorImc::data_;
   using SvorImc::wx_buffer_;
   using SvorImc::theta_;
+  using SvorImc::free_parameters_oracle_;
 };
 }  // namespace VilmaOracle
 

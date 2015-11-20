@@ -8,42 +8,45 @@
  * Copyright (C) 2015 Kostiantyn Antoniuk
  */
 
-#include "data.h"
-#include "accpm_parameters_builder.h"
+#include "tail_parameters_oracle.h"
 #include "accpm_tail_parameters_oracle.h"
+#include "accpm_parameters_builder.h"
 
-#include "svor_imc.h"
+#include "mord.h"
+#include "loss.h"
 
 using namespace VilmaOracle;
 
-SvorImc::SvorImc(Data *data)
-    : SvorImcReg(data),
-      theta_(data->GetDataNumClasses() - 1),
+template <class Loss>
+MOrd<Loss>::MOrd(Data *data)
+    : MOrdRegularized<Loss>(data),
+      beta_(data->GetDataNumClasses()),
       free_parameters_oracle_(
           new VilmaAccpmOracle::AccpmTailParametersOracle(
-              this, wx_buffer_.get(), data->GetDataNumClasses() - 1),
+              this, wx_buffer_.get(), data->GetDataNumClasses()),
           new VilmaAccpmOracle::VilmaAccpmParametersBuilder(
-              data->GetDataNumClasses() - 1)) {
-  dim = data->GetDataDim();
+              data->GetDataNumClasses())) {
+  dim = data_->GetDataDim();
 }
 
-double SvorImc::risk(const double *weights, double *subgrad) {
+template <class Loss>
+double MOrd<Loss>::risk(const double *weights, double *subgrad) {
   const int nexamples = data_->GetDataNumExamples();
   DenseVecD params(dim, const_cast<double *>(weights));
   DenseVecD gradient(dim, subgrad);
   gradient.fill(0);
 
   ProjectData(params, data_, wx_buffer_.get());
-  // train theta
+  // train beta
   std::vector<double> opt_theta = free_parameters_oracle_.Optimize();
   for (int i = 0; i < (int)opt_theta.size(); ++i) {
-    theta_[i] = opt_theta[i];
+    beta_[i] = opt_theta[i];
   }
 
   double obj = 0;
   for (int example_idx = 0; example_idx < nexamples; ++example_idx) {
     double val = UpdateSingleExampleGradient(
-        theta_, wx_buffer_[example_idx], example_idx, gradient.data_, nullptr);
+        beta_, wx_buffer_[example_idx], example_idx, gradient.data_, nullptr);
     obj += val;
   }
   // normalize
@@ -53,7 +56,8 @@ double SvorImc::risk(const double *weights, double *subgrad) {
   return obj;
 }
 
-std::vector<double> SvorImc::Train() {
+template <class Loss>
+std::vector<double> MOrd<Loss>::Train() {
   std::vector<double> opt_w = BMRM_Solver::learn();
   DenseVecD params(dim, &opt_w[0]);
 
@@ -65,3 +69,5 @@ std::vector<double> SvorImc::Train() {
 
   return opt_w;
 }
+
+template class VilmaOracle::MOrd<Vilma::MAELoss>;

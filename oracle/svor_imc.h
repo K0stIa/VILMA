@@ -12,6 +12,7 @@
 #define svor_imc_
 
 #include "svor_imc_reg.h"
+#include "tail_parameters_oracle.h"
 
 class Data;
 
@@ -40,6 +41,7 @@ class SvorImc : public SvorImcReg {
   using SvorImcReg::data_;
   using SvorImcReg::wx_buffer_;
   DenseVecD theta_;
+  VilmaAccpmOracle::TailParametersOptimizationEngine free_parameters_oracle_;
 };
 }  // namespace VilmaOracle
 

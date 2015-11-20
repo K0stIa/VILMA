@@ -30,8 +30,9 @@ class OrdinalRegression : public BMRM_Solver {
   OrdinalRegression(Data *data);
 
   int GetOracleParamsDim();
+  // edimentionality of theta in case of Ord or beta in case of Mord
+  virtual int GetFreeParamsDim();
   Data *GetOracleData();
-  double *GetWxBuffer();
 
   virtual double risk(const double *weights, double *subgrad);
 
@@ -59,7 +60,5 @@ class OrdinalRegression : public BMRM_Solver {
 };
 
 }  // namespace VilmaOracle
-
-#include "ordinal_regression.hpp"
 
 #endif /* ordinal_regression_h */

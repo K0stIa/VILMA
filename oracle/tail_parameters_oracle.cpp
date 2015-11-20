@@ -6,96 +6,35 @@
 //  Copyright © 2015 Kostia. All rights reserved.
 //
 
-#include "tail_parameters_oracle.h"
+#include <vector>
 
 #include "ordinal_regression.h"
 #include "QpGenerator.h"
-#include "Oracle.h"
+
+#include "tail_parameters_oracle.h"
 
 using namespace VilmaAccpmOracle;
 
 TailParametersOptimizationEngine::TailParametersOptimizationEngine(
-    VilmaOracle::OrdinalRegression *ord,
+    VilmaAccpmOracle::AccpmTailParametersOracle *accpm_oracle,
     VilmaAccpmOracle::AccpmParametersBuilder *accpm_builder)
-    : caller(ord), accpm_builder(accpm_builder) {}
-
-//////////
-class AccpmTailParametersOracle : public Accpm::OracleFunction {
- public:
-  AccpmTailParametersOracle(VilmaOracle::OrdinalRegression *ord_oracle,
-                            const int dim)
-      : ord_oracle(ord_oracle),
-        kDim(dim),
-        accpm_grad_vector_(dim),
-        params(dim),
-        gradient(dim) {}
-
-  virtual ~AccpmTailParametersOracle() = default;
-
-  virtual int eval(const Accpm::AccpmVector &y,
-                   Accpm::AccpmVector &functionValue,
-                   Accpm::AccpmGenMatrix &subGradients,
-                   Accpm::AccpmGenMatrix *info) {
-    // call native oracle function
-    for (int i = 0; i < kDim; ++i) {
-      params[i] = y(i);
-    }
-    gradient.fill(0);
-
-    const int nexamples = ord_oracle->GetOracleData()->GetDataNumExamples();
-    double *wx_buffer_ = ord_oracle->GetWxBuffer();
-    double obj = 0;
-
-    for (int example_idx = 0; example_idx < nexamples; ++example_idx) {
-      double val = ord_oracle->UpdateSingleExampleGradient(
-          params, wx_buffer_[example_idx], example_idx, nullptr,
-          gradient.data_);
-
-      obj += val;
-    }
-    // normalize
-    gradient.mul(1. / nexamples);
-    obj /= nexamples;
-
-    functionValue = obj;
-
-    for (int i = 0; i < kDim; ++i) {
-      accpm_grad_vector_(i) = gradient[i];
-    }
-
-    if (info != nullptr) {
-      *info = 1;
-    }
-
-    memcpy(subGradients.addr(), accpm_grad_vector_.addr(),
-           sizeof(double) * accpm_grad_vector_.size());
-
-    return 0;
-  }
-
- protected:
-  VilmaOracle::OrdinalRegression *ord_oracle;
-  const int kDim;
-  Accpm::AccpmVector accpm_grad_vector_;
-  Vilma::DenseVector<double> params, gradient;
-};
-/////////
+    : accpm_oracle_(accpm_oracle), accpm_builder_(accpm_builder) {}
 
 std::vector<double> TailParametersOptimizationEngine::Optimize() {
-  std::unique_ptr<Accpm::Parameters> params(accpm_builder->Build());
+  std::unique_ptr<Accpm::Parameters> params(accpm_builder_->Build());
 
   int n = params->getIntParameter("NumVariables");
 
-  vector<double> start(n, 0);
+  std::vector<double> start(n, 0);
   params->setStartingPoint(start);
   // vector<double> center(n, 0.5);
   // param.setCenterBall(center);
 
-  AccpmTailParametersOracle f1(caller, n);
-  Accpm::Oracle accpm_oracle(&f1);
+  // AccpmTailParametersOracle f1(caller, n);
+  Accpm::Oracle oracle(accpm_oracle_.get());
 
   Accpm::QpGenerator qpGen;
-  qpGen.init(params.get(), &accpm_oracle);
+  qpGen.init(params.get(), &oracle);
   while (!qpGen.run()) {
   }
 
@@ -109,4 +48,14 @@ std::vector<double> TailParametersOptimizationEngine::Optimize() {
   qpGen.terminate();
 
   return vals;
+}
+
+void TailParametersOptimizationEngine::ResetAccpmTailParametersOracle(
+    VilmaAccpmOracle::AccpmTailParametersOracle *new_accpm_oracle) {
+  accpm_oracle_.reset(new_accpm_oracle);
+}
+
+void TailParametersOptimizationEngine::ResetAccpmParametersBuilder(
+    VilmaAccpmOracle::AccpmParametersBuilder *new_accpm_parameter_builder) {
+  accpm_builder_.reset(new_accpm_parameter_builder);
 }

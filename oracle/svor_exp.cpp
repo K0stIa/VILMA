@@ -11,11 +11,19 @@
 #include "data.h"
 #include "sparse_vector.h"
 
+#include "tail_parameters_oracle.h"
+#include "accpm_parameters_builder.h"
+#include "accpm_constrained_theta_tail_parameters_oracle.h"
+
 #include "svor_exp.h"
 
 using namespace VilmaOracle;
 
-SvorExp::SvorExp(Data *data) : SvorImc(data) {}
+SvorExp::SvorExp(Data *data) : SvorImc(data) {
+  free_parameters_oracle_.ResetAccpmTailParametersOracle(
+      new VilmaAccpmOracle::AccpmConstrainedThetaTailParametersOracle(
+          this, wx_buffer_.get(), theta_.dim_));
+}
 
 double SvorExp::UpdateSingleExampleGradient(const DenseVecD &theta,
                                             const double wx,

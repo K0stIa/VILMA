@@ -12,6 +12,7 @@
 #include <vector>
 #include <memory>
 
+#include "accpm_tail_parameters_oracle.h"
 #include "accpm_parameters_builder.h"
 
 namespace VilmaOracle {
@@ -24,15 +25,21 @@ class TailParametersOptimizationEngine {
  public:
   TailParametersOptimizationEngine() = delete;
   TailParametersOptimizationEngine(
-      VilmaOracle::OrdinalRegression *,
+      VilmaAccpmOracle::AccpmTailParametersOracle *accpm_oracle,
       VilmaAccpmOracle::AccpmParametersBuilder *accpm_builder);
 
   std::vector<double> Optimize();
 
+  void ResetAccpmTailParametersOracle(
+      VilmaAccpmOracle::AccpmTailParametersOracle *new_accpm_oracle);
+
+  void ResetAccpmParametersBuilder(
+      VilmaAccpmOracle::AccpmParametersBuilder *new_accpm_parameter_builder);
+
  protected:
  private:
-  VilmaOracle::OrdinalRegression *caller;
-  std::unique_ptr<VilmaAccpmOracle::AccpmParametersBuilder> accpm_builder;
+  std::unique_ptr<VilmaAccpmOracle::AccpmTailParametersOracle> accpm_oracle_;
+  std::unique_ptr<VilmaAccpmOracle::AccpmParametersBuilder> accpm_builder_;
 };  // end TailParameterOracle
 
 }  // namespace VilmaAccpmOracle

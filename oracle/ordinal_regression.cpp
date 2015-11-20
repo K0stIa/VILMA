@@ -51,15 +51,16 @@ double OrdinalRegression::risk(const double *weights, double *subgrad) {
   const int nexamples = data_->GetDataNumExamples();
 
   DenseVecD w(data_->GetDataDim(), const_cast<double *>(weights));
-  DenseVecD theta(data_->GetDataNumClasses() - 1,
-                  const_cast<double *>(weights) + data_->GetDataDim());
+  // free_params is theta for Ord and beta for Mord
+  DenseVecD free_params(this->GetFreeParamsDim(),
+                        const_cast<double *>(weights) + data_->GetDataDim());
 
   ProjectData(w, data_, wx_buffer_.get());
 
   double obj = 0;
   for (int example_idx = 0; example_idx < nexamples; ++example_idx) {
     double val = this->UpdateSingleExampleGradient(
-        theta, wx_buffer_[example_idx], example_idx, subgrad,
+        free_params, wx_buffer_[example_idx], example_idx, subgrad,
         subgrad + data_->GetDataDim());
     obj += val;
   }
@@ -72,4 +73,6 @@ double OrdinalRegression::risk(const double *weights, double *subgrad) {
 
 Data *OrdinalRegression::GetOracleData() { return data_; }
 
-double *OrdinalRegression::GetWxBuffer() { return wx_buffer_.get(); }
+int OrdinalRegression::GetFreeParamsDim() {
+  return data_->GetDataNumClasses() - 1;
+}
