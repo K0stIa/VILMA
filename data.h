@@ -30,6 +30,9 @@ struct Data {
     if (y != nullptr) delete y;
     if (z != nullptr) delete z;
   }
+  int GetDataDim();
+  int GetDataNumExamples();
+  int GetDataNumClasses();
 };
 
 bool LoadData(const std::string& filepath, Data* data,

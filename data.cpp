@@ -16,6 +16,12 @@
 #include <sstream>
 #include <algorithm>
 
+int Data::GetDataDim() { return x->kCols; }
+
+int Data::GetDataNumExamples() { return x->kRows; }
+
+int Data::GetDataNumClasses() { return ny; }
+
 bool LoadData(const std::string& filepath, Data* data,
               const int max_num_examples, const int num_supervised_examples) {
   if (data == nullptr) return false;
