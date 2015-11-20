@@ -49,3 +49,15 @@ double SvorImc::risk(const double *weights, double *subgrad) {
 
   return obj;
 }
+
+std::vector<double> SvorImc::Train() {
+  std::vector<double> opt_w = BMRM_Solver::learn();
+  DenseVecD params(dim, &opt_w[0]);
+  ProjectData(params, data_, wx_buffer_.get());
+
+  VilmaAccpmOracle::TailParametersOptimizationEngine theta_oracle(
+      this, new VilmaAccpmOracle::VilmaAccpmParametersBuilder(theta_.dim_));
+  std::vector<double> opt_theta = theta_oracle.Optimize();
+  opt_w.insert(opt_w.end(), opt_theta.begin(), opt_theta.end());
+  return opt_w;
+}

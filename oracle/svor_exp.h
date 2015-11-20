@@ -29,6 +29,7 @@ class SvorExp : public SvorImc {
   using SvorImc::GetOracleParamsDim;
   using SvorImc::SingleExampleBestLabelLookup;
   using SvorImc::ProjectData;
+  using SvorImc::Train;
 
   virtual double UpdateSingleExampleGradient(
       const DenseVecD &theta, const double wx, const int example_idx,
