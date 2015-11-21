@@ -20,7 +20,6 @@
 
 namespace VilmaOracle {
 typedef Vilma::DenseVector<double> DenseVecD;
-typedef Vilma::DenseVectorView<double> DenseVecDView;
 
 class OrdinalRegression : public BMRM_Solver {
  public:

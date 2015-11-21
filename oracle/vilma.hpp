@@ -8,18 +8,9 @@
  * Copyright (C) 2015 Kostiantyn Antoniuk
  */
 
-#include "tail_parameters_oracle.h"
-#include "accpm_tail_parameters_oracle.h"
-#include "accpm_parameters_builder.h"
-
-#include "mord.h"
-#include "loss.h"
-
-using namespace VilmaOracle;
-
 template <class Loss>
-MOrd<Loss>::MOrd(Data *data)
-    : MOrdRegularized<Loss>(data),
+VilmaOracle::Vilma<Loss>::Vilma(Data *data)
+    : VilmaRegularized<Loss>(data),
       beta_(data->GetDataNumClasses()),
       free_parameters_oracle_(
           new VilmaAccpmOracle::AccpmTailParametersOracle(
@@ -30,7 +21,7 @@ MOrd<Loss>::MOrd(Data *data)
 }
 
 template <class Loss>
-double MOrd<Loss>::risk(const double *weights, double *subgrad) {
+double VilmaOracle::Vilma<Loss>::risk(const double *weights, double *subgrad) {
   const int nexamples = data_->GetDataNumExamples();
   DenseVecD params(dim, const_cast<double *>(weights));
   DenseVecD gradient(dim, subgrad);
@@ -57,7 +48,7 @@ double MOrd<Loss>::risk(const double *weights, double *subgrad) {
 }
 
 template <class Loss>
-std::vector<double> MOrd<Loss>::Train() {
+std::vector<double> VilmaOracle::Vilma<Loss>::Train() {
   std::vector<double> opt_w = BMRM_Solver::learn();
   DenseVecD params(dim, &opt_w[0]);
 
@@ -69,5 +60,3 @@ std::vector<double> MOrd<Loss>::Train() {
 
   return opt_w;
 }
-
-template class VilmaOracle::MOrd<Vilma::MAELoss>;

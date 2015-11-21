@@ -1,12 +1,12 @@
 /*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- *
- * Written (W) 2015 Kostiantyn Antoniuk
- * Copyright (C) 2015 Kostiantyn Antoniuk
- */
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 3 of the License, or
+* (at your option) any later version.
+*
+* Written (W) 2015 Kostiantyn Antoniuk
+* Copyright (C) 2015 Kostiantyn Antoniuk
+*/
 
 #ifndef __MOrdRegularized__
 #define __MOrdRegularized__
@@ -50,5 +50,7 @@ class MOrdRegularized : public OrdinalRegression {
   using OrdinalRegression::wx_buffer_;
 };
 }
+
+#include "mord_regularized.hpp"
 
 #endif /* defined(__MOrdRegularized__) */

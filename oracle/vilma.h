@@ -8,10 +8,10 @@
  * Copyright (C) 2015 Kostiantyn Antoniuk
  */
 
-#ifndef mord_h
-#define mord_h
+#ifndef vilma_hpp
+#define vilma_hpp
 
-#include "mord_regularized.h"
+#include "vilma_regularized.h"
 #include "tail_parameters_oracle.h"
 
 class Data;
@@ -21,30 +21,31 @@ namespace VilmaOracle {
 typedef Vilma::DenseVector<double> DenseVecD;
 
 template <class Loss>
-class MOrd : public MOrdRegularized<Loss> {
+class Vilma : public VilmaRegularized<Loss> {
  public:
-  MOrd() = delete;
+  Vilma() = delete;
 
-  MOrd(Data *data);
-  virtual ~MOrd() = default;
+  Vilma(Data *data);
+  virtual ~Vilma() = default;
 
-  using MOrdRegularized<Loss>::GetOracleParamsDim;
-  using MOrdRegularized<Loss>::GetOracleData;
-  using MOrdRegularized<Loss>::ProjectData;
-  using MOrdRegularized<Loss>::SingleExampleBestLabelLookup;
-  using MOrdRegularized<Loss>::UpdateSingleExampleGradient;
+  using VilmaRegularized<Loss>::GetOracleParamsDim;
+  using VilmaRegularized<Loss>::GetOracleData;
+  using VilmaRegularized<Loss>::ProjectData;
+  using VilmaRegularized<Loss>::SingleExampleBestLabelLookup;
+  using VilmaRegularized<Loss>::UpdateSingleExampleGradient;
 
   virtual double risk(const double *weights, double *subgrad) override;
 
   std::vector<double> Train();
 
  protected:
-  using MOrdRegularized<Loss>::dim;
-  Loss loss_;
+  using VilmaRegularized<Loss>::dim;
+  using VilmaRegularized<Loss>::loss_;
   // Oracle is never an owner of Data
-  using MOrdRegularized<Loss>::data_;
+  using VilmaRegularized<Loss>::data_;
   // buffer to store results <w,x> for all x
-  using MOrdRegularized<Loss>::wx_buffer_;
+  using VilmaRegularized<Loss>::wx_buffer_;
+
   // beta oracle
   VilmaAccpmOracle::TailParametersOptimizationEngine free_parameters_oracle_;
 
@@ -53,6 +54,6 @@ class MOrd : public MOrdRegularized<Loss> {
 };
 }
 
-#include "mord.hpp"
+#include "vilma.hpp"
 
-#endif /* mord_h */
+#endif /* vilma_hpp */

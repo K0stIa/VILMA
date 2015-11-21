@@ -17,8 +17,6 @@
 
 namespace VilmaOracle {
 
-typedef Vilma::DenseVector<double> DenseVecD;
-
 template <class Loss>
 class PwVilmaRegularized : public OrdinalRegression {
  public:

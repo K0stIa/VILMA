@@ -8,6 +8,13 @@
  * Copyright (C) 2015 Kostiantyn Antoniuk
  */
 
+#include <string>
+#include <fstream>
+#include <iostream>
+#include <chrono>
+#include <vector>
+#include <memory>
+
 #include "sparse_matrix.h"
 #include "dense_vector.h"
 #include "data.h"
@@ -16,38 +23,24 @@
 #include "sparse_vector.h"
 
 #include "oracle/ordinal_regression.h"
-#include "oracle/ordinal_regression.hpp"
 #include "oracle/svor_imc_reg.h"
 #include "oracle/svor_imc.h"
 #include "oracle/mord.h"
+#include "oracle/vilma.h"
 #include "oracle/pw_mord_regularized.h"
 
-#include <string>
-#include <fstream>
-#include <iostream>
-#include <chrono>
-#include <vector>
+#include "evaluators.hpp"
 
 using namespace std;
-
-// template <class Loss>
-// using Oracle = SgdOracle::TightGenderSupervisedOracle<Loss>;
-
-// template <class Loss>
-// using AgeOracle = VilmaOracle::AgeOracle<Loss>;
-
-// template <class Oracle>
-// using BmrmOracleWrapper = VilmaOracle::BmrmOracleWrapper<Oracle>;
 
 template <class T>
 using DenseVec = Vilma::DenseVector<T>;
 
 typedef DenseVec<double> DenseVecD;
 
-typedef Vilma::MAELoss Loss;
-
-template <class Oracle, class Loss>
-void RunExperiment(const string &input_dir, const string &output_filename,
+template <class Oracle>
+void RunExperiment(VilmaEvaluators::ModelEvaluator *model_evaluator,
+                   const string &input_dir, const string &output_filename,
                    const double lambda, const int supervised,
                    const int fraction) {
   Data data;
@@ -56,9 +49,7 @@ void RunExperiment(const string &input_dir, const string &output_filename,
   LoadData(input_dir + "-trn.bin", &data, fraction, supervised);
   std::cout << "Data loaded\n";
 
-  std::vector<int> cut_labels = {0, 20, 40, data.GetDataNumClasses() - 1};
-
-  Oracle oracle(&data, cut_labels);
+  Oracle oracle(&data);
   oracle.set_lambda(lambda);
 
   if (lambda >= 1.0) {
@@ -95,8 +86,7 @@ void RunExperiment(const string &input_dir, const string &output_filename,
   std::cout << "Classifier weights saved\n";
 
   // compute train error
-  double trn_error =
-      VilmaOracle::EvaluatePwModel<Loss>(&data, &opt_params[0], cut_labels);
+  double trn_error = model_evaluator->Evaluate(&data, &opt_params[0]);
   std::cout << "trn error: " << trn_error << std::endl;
 
   Data val_data;
@@ -107,8 +97,7 @@ void RunExperiment(const string &input_dir, const string &output_filename,
   std::cout << "Validation data loaded\n";
 
   // compute validation error
-  double val_error =
-      VilmaOracle::EvaluatePwModel<Loss>(&val_data, &opt_params[0], cut_labels);
+  double val_error = model_evaluator->Evaluate(&val_data, &opt_params[0]);
   std::cout << "val error: " << val_error << std::endl;
 
   Data tst_data;
@@ -119,8 +108,7 @@ void RunExperiment(const string &input_dir, const string &output_filename,
   std::cout << "Validation data loaded\n";
 
   // compute validation error
-  double tst_error =
-      VilmaOracle::EvaluatePwModel<Loss>(&tst_data, &opt_params[0], cut_labels);
+  double tst_error = model_evaluator->Evaluate(&tst_data, &opt_params[0]);
   std::cout << "tst error: " << tst_error << std::endl;
 
   // save errors
@@ -146,25 +134,33 @@ int main(int argc, const char *argv[]) {
 
   oracle_name = oracle_name.substr(0, oracle_name.find('-'));
 
-  if (oracle_name == "SvorImcReg") {
-    // RunExperimentTheta(input_dir, output_dir, lambda, supervised, fraction);
-    //    RunExperiment<VilmaOracle::SvorImcReg, Vilma::MAELoss>(
-    //        input_dir, output_dir, lambda, supervised, fraction);
-  } else if (oracle_name == "MOrd") {
-    //    RunExperiment<VilmaOracle::MOrd<Loss>, Loss>(input_dir, output_dir,
-    //    lambda,
-    //                                                 supervised, fraction);
-  } else if (oracle_name == "SvorImc") {
-    //    RunExperiment<VilmaOracle::SvorImc, Vilma::MAELoss>(
-    //        input_dir, output_dir, lambda, supervised, fraction);
+  std::unique_ptr<VilmaEvaluators::ModelEvaluator> model_evaluator;
 
+  if (oracle_name == "Vilma") {
+    model_evaluator.reset(
+        new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
+  } else if (oracle_name == "SvorImc") {
+    model_evaluator.reset(
+        new VilmaEvaluators::OrdModelEvaluator<Vilma::MAELoss>);
+  } else if (oracle_name == "MOrd") {
+    model_evaluator.reset(
+        new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
   } else if (oracle_name == "PwMOrdReg") {
-    RunExperiment<VilmaOracle::PwMOrdRegularized<Vilma::MAELoss>,
-                  Vilma::MAELoss>(input_dir, output_dir, lambda, supervised,
-                                  fraction);
+    //    std::vector<int> cut_labels = {0, 20, 40, 54};
+    //    VilmaEvaluators::PwMOrdModelEvaluator<Vilma::MAELoss> model_evaluator(
+    //        cut_labels);
+    //
+    //    RunExperiment<VilmaOracle::PwMOrdRegularized<Vilma::MAELoss>>(
+    //        &model_evaluator, input_dir, output_dir, lambda, supervised,
+    //        fraction);
   } else {
     cout << "Oracle " << oracle_name << " is not supported!" << endl;
+    return 0;
   }
+
+  RunExperiment<VilmaOracle::Vilma<Vilma::MAELoss>>(
+      model_evaluator.get(), input_dir, output_dir, lambda, supervised,
+      fraction);
 
   return 0;
 }
