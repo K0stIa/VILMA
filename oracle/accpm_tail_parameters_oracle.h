@@ -1,10 +1,12 @@
-//
-//  accpm_tail_parameters_oracle.hpp
-//  VILMA
-//
-//  Created by Kostia on 11/20/15.
-//  Copyright © 2015 Kostia. All rights reserved.
-//
+/*
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Written (W) 2015 Kostiantyn Antoniuk
+ * Copyright (C) 2015 Kostiantyn Antoniuk
+ */
 
 #ifndef accpm_tail_parameters_oracle_h
 #define accpm_tail_parameters_oracle_h
