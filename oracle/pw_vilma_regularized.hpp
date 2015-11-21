@@ -25,7 +25,7 @@ VilmaOracle::PwVilmaRegularized<Loss>::PwVilmaRegularized(
   // setup BMRM dim
   dim = GetOracleParamsDim();
 
-  wx_buffer_.reset(new double[data_->x->kRows * kPW]);
+  wx_buffer_.reset(new double[data_->GetDataNumExamples() * kPW]);
   alpha_buffer_.reset(BuildAlphas(cut_labels, data_->GetDataNumClasses()));
 }
 
@@ -106,7 +106,7 @@ void VilmaOracle::PwVilmaRegularized<Loss>::ProjectData(const DenseVecD &aw,
     w[i].reset(new DenseVecD(dim_x, aw.data_ + dim_x * i));
   }
 
-  const int nexamples = data->x->kRows;
+  const int nexamples = data->GetDataNumExamples();
   // precompute wx[example_idx] = <x, w>
   int pos = 0;
   for (int example_idx = 0; example_idx < nexamples; ++example_idx) {

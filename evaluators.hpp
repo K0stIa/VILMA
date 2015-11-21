@@ -100,7 +100,7 @@ class PwMOrdModelEvaluator : public ModelEvaluator {
     double *alpha_buffer =
         VilmaOracle::PwVilmaRegularized<Loss>::BuildAlphas(cut_labels_, ny);
 
-    std::vector<double> wx(dim_x * kPW);
+    std::vector<double> wx(num_examples * kPW);
     DenseVecD weights(dim_x * kPW, params);
 
     VilmaOracle::PwVilmaRegularized<Loss>::ProjectData(weights, data, &wx[0],
