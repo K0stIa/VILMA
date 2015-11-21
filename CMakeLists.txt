@@ -35,18 +35,15 @@ aux_source_directory(solver SOLVER)
 aux_source_directory(. THIS)
 
 set( SRC data.h		dense_vector.hpp  model_evaluator.h    sparse_matrix.h	  sparse_vector.h    vector_interface.h
-dense_vector.h	loss.h		  model_evaluator.hpp  sparse_matrix.hpp  sparse_vector.hpp data.cpp)
+dense_vector.h	loss.h		  model_evaluator.hpp  sparse_matrix.hpp  sparse_vector.hpp data.cpp evaluators.hpp)
 
 set(OBOE_LIBS ${OBOE}/lib/libaccpm.a ${OBOE}/lib/libaccpmcore.a ${OBOE}/lib/libaccpmla.a ${OBOE}/lib/libaccpmoracle.a  ${OBOE}/lib/libaccpmparam.a blas lapack lapackpp)
-
-#mex_setup(MATLAB_ROOT MEX MEX_EXT)
-#add_mex(mvilma mvilma_mex.cc OUTPUT_NAME mvilma])
 
 add_executable(main main.cpp ${BMRM} ${ORACLE} ${SOLVER} ${SRC})
 target_link_libraries(main ${OBOE_LIBS})
 
-add_executable(report_resuts report_resuts.cpp ${BMRM} ${ORACLE} ${SRC})
-target_link_libraries(report_resuts ${OBOE_LIBS})
+#add_executable(report_resuts report_resuts.cpp ${BMRM} ${ORACLE} ${SRC})
+#target_link_libraries(report_resuts ${OBOE_LIBS})
 
 add_executable(train_vilma train_vilma.cpp ${BMRM} ${ORACLE} ${SRC})
 target_link_libraries(train_vilma ${OBOE_LIBS})
@@ -54,29 +51,16 @@ target_link_libraries(train_vilma ${OBOE_LIBS})
 add_executable(test_vilma test_vilma.cpp ${BMRM} ${ORACLE} ${SRC})
 target_link_libraries(test_vilma ${OBOE_LIBS})
 
-#ADD_MATLAB_MEX_FILE(mvilma mvilma_mex.cc)
-# ADD_MATLAB_MEX_FILE(mvilma mvilma_mex.cc sparse_matrix.h sparse_matrix.hpp sparse_vector.h sparse_vector.hpp)
-# target_link_libraries(mvilma LINK_PRIVATE ${MEX_LIBRARIES} ${MATLAB_ENGINE_LIBRARIES})
-
-set(CMAKE_CC_COMPILER "/usr/bin/gcc-4.7.3")
-set(CMAKE_CXX_COMPILER "/usr/bin/g++-4.7.3")
-set(MEX_CXX "g++-4.7.3")
-set(MEX_CC "gcc-4.7.3")
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
 set(MEX_LDFLAGS "-Wl,-rpath")
 set(MEX_LINK_LIBS "${OBOE_LIBS};stdc++" CACHE STRING "External libraries to link to this mex file." FORCE)
 set(MEX_CXXFLAGS "-largeArrayDims")
-set(MATLAB_ROOT "/usr/local/matlab801")
 
 include(mex)
 add_mex(mvilma mvilma_mex.cc ${ORACLE} ${SRC} ${BMRM})
-#target_link_libraries(mvilma lapack)
-#target_link_libraries(mvilma blas)
-#target_link_libraries(mvilma lapackpp)
 
 target_link_libraries(mvilma ${OBOE_LIBS})
 
 # test
 add_executable(train_pw_vilma train_pw_vilma.cpp ${BMRM} ${ORACLE} ${SRC})
 target_link_libraries(train_pw_vilma ${OBOE_LIBS})
-
