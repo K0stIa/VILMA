@@ -42,7 +42,7 @@ double SvorImc::risk(const double *weights, double *subgrad) {
 
   double obj = 0;
   for (int example_idx = 0; example_idx < nexamples; ++example_idx) {
-    double val = UpdateSingleExampleGradient(
+    double val = this->UpdateSingleExampleGradient(
         theta_, wx_buffer_[example_idx], example_idx, gradient.data_, nullptr);
     obj += val;
   }

@@ -65,7 +65,7 @@ double OrdinalRegression::risk(const double *weights, double *subgrad) {
     obj += val;
   }
   // normalize
-  for (int i = 0; i < GetOracleParamsDim(); ++i) subgrad[i] /= nexamples;
+  for (int i = 0; i < this->GetOracleParamsDim(); ++i) subgrad[i] /= nexamples;
   obj /= nexamples;
 
   return obj;
