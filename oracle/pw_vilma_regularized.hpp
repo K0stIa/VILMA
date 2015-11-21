@@ -55,7 +55,7 @@ double *VilmaOracle::PwVilmaRegularized<Loss>::BuildAlphas(
 
 template <class Loss>
 int VilmaOracle::PwVilmaRegularized<Loss>::GetOracleParamsDim() {
-  return data_->GetDataDim() * kPW + GetFreeParamsDim();
+  return data_->GetDataDim() * kPW + this->GetFreeParamsDim();
 }
 
 template <class Loss>

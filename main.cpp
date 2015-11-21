@@ -28,6 +28,8 @@
 #include "oracle/mord.h"
 #include "oracle/vilma.h"
 #include "oracle/pw_mord_regularized.h"
+#include "oracle/pw_vilma.h"
+#include "oracle/pw_mord.h"
 
 #include "evaluators.hpp"
 
@@ -162,6 +164,8 @@ int main(int argc, const char *argv[]) {
 
   oracle_name = oracle_name.substr(0, oracle_name.find('-'));
 
+  const std::vector<int> cut_labels = {0, 25, 54};
+
   std::unique_ptr<VilmaEvaluators::ModelEvaluator> model_evaluator;
   std::unique_ptr<OracleBuilderInterface> oracle_builder;
 
@@ -169,21 +173,36 @@ int main(int argc, const char *argv[]) {
     model_evaluator.reset(
         new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
     oracle_builder.reset(new OracleBuilder<VilmaOracle::VILma<Vilma::MAELoss>>);
+
   } else if (oracle_name == "SvorImc") {
     model_evaluator.reset(
         new VilmaEvaluators::OrdModelEvaluator<Vilma::MAELoss>);
     oracle_builder.reset(new OracleBuilder<VilmaOracle::SvorImc>);
+
   } else if (oracle_name == "MOrd") {
     model_evaluator.reset(
         new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
     oracle_builder.reset(new OracleBuilder<VilmaOracle::MOrd<Vilma::MAELoss>>);
+
+  } else if (oracle_name == "PwVilma") {
+    model_evaluator.reset(
+        new VilmaEvaluators::PwMOrdModelEvaluator<Vilma::MAELoss>(cut_labels));
+    oracle_builder.reset(
+        new PwOracleBuilder<VilmaOracle::PwVilma<Vilma::MAELoss>>(cut_labels));
+
+  } else if (oracle_name == "PwMord") {
+    model_evaluator.reset(
+        new VilmaEvaluators::PwMOrdModelEvaluator<Vilma::MAELoss>(cut_labels));
+    oracle_builder.reset(
+        new PwOracleBuilder<VilmaOracle::PwMOrd<Vilma::MAELoss>>(cut_labels));
+
   } else if (oracle_name == "PwMOrdReg") {
-    std::vector<int> cut_labels = {0, 20, 40, 54};
     model_evaluator.reset(
         new VilmaEvaluators::PwMOrdModelEvaluator<Vilma::MAELoss>(cut_labels));
     oracle_builder.reset(
         new PwOracleBuilder<VilmaOracle::PwMOrdRegularized<Vilma::MAELoss>>(
             cut_labels));
+
   } else {
     cout << "Oracle " << oracle_name << " is not supported!" << endl;
     return 0;

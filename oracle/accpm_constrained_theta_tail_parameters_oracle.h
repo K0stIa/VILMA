@@ -19,7 +19,7 @@ class AccpmConstrainedThetaTailParametersOracle
   virtual ~AccpmConstrainedThetaTailParametersOracle() = default;
   AccpmConstrainedThetaTailParametersOracle(
       VilmaOracle::OrdinalRegression *ord_oracle, double *wx_buffer,
-      const int dim);
+      const int dim, const int dw = 1);
 
   // TODO: reimplement it taking into account base class
   virtual int eval(const Accpm::AccpmVector &y,
@@ -34,6 +34,7 @@ class AccpmConstrainedThetaTailParametersOracle
   using AccpmTailParametersOracle::params;
   using AccpmTailParametersOracle::gradient;
   using AccpmTailParametersOracle::wx_buffer_;
+  using AccpmTailParametersOracle::kDw;
 };
 }
 

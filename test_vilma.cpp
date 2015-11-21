@@ -8,38 +8,24 @@
  * Copyright (C) 2015 Kostiantyn Antoniuk
  */
 
+#include <string>
+#include <fstream>
+#include <iostream>
+#include <chrono>
+#include <vector>
+#include <memory>
+
 #include "sparse_matrix.h"
 #include "dense_vector.h"
 #include "data.h"
 #include "loss.h"
 #include "model_evaluator.h"
 #include "sparse_vector.h"
+#include "oracle/vilma.h"
 
-#include "oracle/sgd_tight_gender_supervised_oracle.h"
-#include "oracle/bmrm_oracle_wrapper.h"
-#include "oracle/sgd_age_oracle.h"
-#include "oracle/single_gender_no_beta_bmrm_oracle.h"
-#include "oracle/single_gender_no_theta_exp_bmrm_oracle.h"
+#include "evaluators.hpp"
 
-#include "Oracle.h"
-#include "QpGenerator.h"
-#include "Parameters.h"
-#include "AccpmBlasInterface.h"
-
-#include <string>
-#include <fstream>
-#include <iostream>
-#include <chrono>
-#include <vector>
-
-using namespace Accpm;
 using namespace std;
-
-template <class Loss>
-using AgeOracle = VilmaOracle::AgeOracle<Loss>;
-
-template <class Oracle>
-using BmrmOracleWrapper = VilmaOracle::BmrmOracleWrapper<Oracle>;
 
 template <class T>
 using DenseVec = Vilma::DenseVector<T>;
@@ -48,12 +34,9 @@ typedef DenseVec<double> DenseVecD;
 
 typedef Vilma::MAELoss Loss;
 
-typedef BmrmOracleWrapper<VilmaOracle::BetaAuxiliaryOracle<Loss>> ACCPMOracle;
-
-typedef BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Loss> EXPOracle;
-
 template <class Oracle>
-void EvaluateExperiment(const string &features_path,
+void EvaluateExperiment(VilmaEvaluators::ModelEvaluator *model_evaluator,
+                        const string &features_path,
                         const string &labeling_path, const string &model_path,
                         const int dim, const int n_classes) {
   Data data;
@@ -67,6 +50,7 @@ void EvaluateExperiment(const string &features_path,
   }
 
   Oracle oracle(&data);
+  oracle.Train();
 
   std::ifstream file(model_path, std::ios::in | std::ios::binary);
   if (!file) {
@@ -77,7 +61,7 @@ void EvaluateExperiment(const string &features_path,
   DenseVecD opt_params(&file);
   file.close();
 
-  double error = oracle.EvaluateModel(&data, opt_params.data_);
+  double error = model_evaluator->Evaluate(&data, opt_params.data_);
   std::cout << error << endl;
 }
 
@@ -90,8 +74,12 @@ int main(int argc, const char *argv[]) {
   const int dim = atoi(argv[4]);
   const int n_classes = atoi(argv[5]);
 
-  EvaluateExperiment<BmrmOracle::SingleGenderNoBetaBmrmOracle<Loss>>(
-      features_path, labeling_path, model_path, dim, n_classes);
+  unique_ptr<VilmaEvaluators::ModelEvaluator> model_evaluator(
+      new VilmaEvaluators::MOrdModelEvaluator<Loss>);
+
+  EvaluateExperiment<VilmaOracle::VILma<Loss>>(model_evaluator.get(),
+                                               features_path, labeling_path,
+                                               model_path, dim, n_classes);
 
   return 0;
 }

@@ -18,13 +18,14 @@ namespace VilmaAccpmOracle {
 class AccpmTailParametersOracle : public Accpm::OracleFunction {
  public:
   AccpmTailParametersOracle(VilmaOracle::OrdinalRegression *ord_oracle,
-                            double *wx_buffer, const int dim)
+                            double *wx_buffer, const int dim, const int dw = 1)
       : ord_oracle(ord_oracle),
         kDim(dim),
         accpm_grad_vector_(dim),
         params(dim),
         gradient(dim),
-        wx_buffer_(wx_buffer) {}
+        wx_buffer_(wx_buffer),
+        kDw(dw) {}
 
   virtual ~AccpmTailParametersOracle() = default;
 
@@ -39,6 +40,7 @@ class AccpmTailParametersOracle : public Accpm::OracleFunction {
   Accpm::AccpmVector accpm_grad_vector_;
   Vilma::DenseVector<double> params, gradient;
   double *wx_buffer_;
+  const int kDw;
 };
 }
 
