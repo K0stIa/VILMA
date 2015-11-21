@@ -25,7 +25,9 @@
 #include "oracle/ordinal_regression.h"
 #include "oracle/svor_imc_reg.h"
 #include "oracle/svor_imc.h"
+#include "oracle/svor_exp.h"
 #include "oracle/mord.h"
+#include "oracle/vilma_regularized.h"
 #include "oracle/vilma.h"
 #include "oracle/pw_mord_regularized.h"
 #include "oracle/pw_vilma.h"
@@ -174,15 +176,41 @@ int main(int argc, const char *argv[]) {
         new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
     oracle_builder.reset(new OracleBuilder<VilmaOracle::VILma<Vilma::MAELoss>>);
 
+  } else if (oracle_name == "VilmaReg") {
+    model_evaluator.reset(
+        new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
+    oracle_builder.reset(
+        new OracleBuilder<VilmaOracle::VilmaRegularized<Vilma::MAELoss>>);
+
   } else if (oracle_name == "SvorImc") {
     model_evaluator.reset(
         new VilmaEvaluators::OrdModelEvaluator<Vilma::MAELoss>);
     oracle_builder.reset(new OracleBuilder<VilmaOracle::SvorImc>);
 
+  } else if (oracle_name == "SvorExpReg") {
+    cout << "Oracle " << oracle_name << " is not yet supported!" << endl;
+    return 0;
+
+  } else if (oracle_name == "SvorImcReg") {
+    model_evaluator.reset(
+        new VilmaEvaluators::OrdModelEvaluator<Vilma::MAELoss>);
+    oracle_builder.reset(new OracleBuilder<VilmaOracle::SvorImc>);
+
+  } else if (oracle_name == "SvorExp") {
+    model_evaluator.reset(
+        new VilmaEvaluators::OrdModelEvaluator<Vilma::MAELoss>);
+    oracle_builder.reset(new OracleBuilder<VilmaOracle::SvorExp>);
+
   } else if (oracle_name == "MOrd") {
     model_evaluator.reset(
         new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
     oracle_builder.reset(new OracleBuilder<VilmaOracle::MOrd<Vilma::MAELoss>>);
+
+  } else if (oracle_name == "MOrdReg") {
+    model_evaluator.reset(
+        new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
+    oracle_builder.reset(
+        new OracleBuilder<VilmaOracle::MOrdRegularized<Vilma::MAELoss>>);
 
   } else if (oracle_name == "PwVilma") {
     model_evaluator.reset(
@@ -190,7 +218,14 @@ int main(int argc, const char *argv[]) {
     oracle_builder.reset(
         new PwOracleBuilder<VilmaOracle::PwVilma<Vilma::MAELoss>>(cut_labels));
 
-  } else if (oracle_name == "PwMord") {
+  } else if (oracle_name == "PwVilmaReg") {
+    model_evaluator.reset(
+        new VilmaEvaluators::PwMOrdModelEvaluator<Vilma::MAELoss>(cut_labels));
+    oracle_builder.reset(
+        new PwOracleBuilder<VilmaOracle::PwVilmaRegularized<Vilma::MAELoss>>(
+            cut_labels));
+
+  } else if (oracle_name == "PwMOrd") {
     model_evaluator.reset(
         new VilmaEvaluators::PwMOrdModelEvaluator<Vilma::MAELoss>(cut_labels));
     oracle_builder.reset(
@@ -204,7 +239,7 @@ int main(int argc, const char *argv[]) {
             cut_labels));
 
   } else {
-    cout << "Oracle " << oracle_name << " is not supported!" << endl;
+    cout << "Oracle " << oracle_name << " is not yet supported!" << endl;
     return 0;
   }
 
