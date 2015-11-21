@@ -21,12 +21,12 @@ namespace VilmaOracle {
 typedef Vilma::DenseVector<double> DenseVecD;
 
 template <class Loss>
-class Vilma : public VilmaRegularized<Loss> {
+class VILma : public VilmaRegularized<Loss> {
  public:
-  Vilma() = delete;
+  VILma() = delete;
 
-  Vilma(Data *data);
-  virtual ~Vilma() = default;
+  VILma(Data *data);
+  virtual ~VILma() = default;
 
   using VilmaRegularized<Loss>::GetOracleParamsDim;
   using VilmaRegularized<Loss>::GetOracleData;
@@ -36,7 +36,7 @@ class Vilma : public VilmaRegularized<Loss> {
 
   virtual double risk(const double *weights, double *subgrad) override;
 
-  std::vector<double> Train();
+  std::vector<double> Train() override;
 
  protected:
   using VilmaRegularized<Loss>::dim;

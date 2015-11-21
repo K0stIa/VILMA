@@ -36,7 +36,7 @@ class MOrd : public MOrdRegularized<Loss> {
 
   virtual double risk(const double *weights, double *subgrad) override;
 
-  std::vector<double> Train();
+  std::vector<double> Train() override;
 
  protected:
   using MOrdRegularized<Loss>::dim;

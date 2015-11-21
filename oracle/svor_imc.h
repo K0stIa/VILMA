@@ -29,7 +29,7 @@ class SvorImc : public SvorImcReg {
 
   virtual double risk(const double *weights, double *subgrad) override;
 
-  std::vector<double> Train();
+  std::vector<double> Train() override;
 
   using SvorImcReg::GetOracleParamsDim;
   using SvorImcReg::SingleExampleBestLabelLookup;

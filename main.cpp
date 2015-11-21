@@ -38,8 +38,35 @@ using DenseVec = Vilma::DenseVector<T>;
 
 typedef DenseVec<double> DenseVecD;
 
+template <class Loss>
+using PwRegression = VilmaOracle::PwVilmaRegularized<Loss>;
+
+///////// Oracle Builders
+
+struct OracleBuilderInterface {
+  virtual VilmaOracle::OrdinalRegression *Build(Data *data) const = 0;
+};
+
 template <class Oracle>
-void RunExperiment(VilmaEvaluators::ModelEvaluator *model_evaluator,
+struct OracleBuilder : public OracleBuilderInterface {
+  Oracle *Build(Data *data) const override { return new Oracle(data); }
+};
+
+template <class Oracle>
+struct PwOracleBuilder : public OracleBuilderInterface {
+  PwOracleBuilder() = delete;
+  PwOracleBuilder(const std::vector<int> &cut_labels)
+      : cut_labels_(cut_labels) {}
+  Oracle *Build(Data *data) const override {
+    return new Oracle(data, cut_labels_);
+  }
+  const std::vector<int> cut_labels_;
+};
+
+///////// END Oracle Builders
+
+void RunExperiment(OracleBuilderInterface *oracle_builder,
+                   VilmaEvaluators::ModelEvaluator *model_evaluator,
                    const string &input_dir, const string &output_filename,
                    const double lambda, const int supervised,
                    const int fraction) {
@@ -49,15 +76,16 @@ void RunExperiment(VilmaEvaluators::ModelEvaluator *model_evaluator,
   LoadData(input_dir + "-trn.bin", &data, fraction, supervised);
   std::cout << "Data loaded\n";
 
-  Oracle oracle(&data);
-  oracle.set_lambda(lambda);
+  VilmaOracle::OrdinalRegression *oracle = oracle_builder->Build(&data);
+
+  oracle->set_lambda(lambda);
 
   if (lambda >= 1.0) {
-    oracle.set_BufSize(300);
+    oracle->set_BufSize(300);
   } else if (lambda >= 0.1) {
-    oracle.set_BufSize(700);
+    oracle->set_BufSize(700);
   } else {
-    oracle.set_BufSize(1500);
+    oracle->set_BufSize(1500);
   }
 
   // measure learning time
@@ -65,7 +93,7 @@ void RunExperiment(VilmaEvaluators::ModelEvaluator *model_evaluator,
       std::chrono::steady_clock::now();
 
   // train W weights
-  vector<double> opt_params = oracle.Train();
+  vector<double> opt_params = oracle->Train();
 
   // print learning time
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -135,32 +163,34 @@ int main(int argc, const char *argv[]) {
   oracle_name = oracle_name.substr(0, oracle_name.find('-'));
 
   std::unique_ptr<VilmaEvaluators::ModelEvaluator> model_evaluator;
+  std::unique_ptr<OracleBuilderInterface> oracle_builder;
 
   if (oracle_name == "Vilma") {
     model_evaluator.reset(
         new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
+    oracle_builder.reset(new OracleBuilder<VilmaOracle::VILma<Vilma::MAELoss>>);
   } else if (oracle_name == "SvorImc") {
     model_evaluator.reset(
         new VilmaEvaluators::OrdModelEvaluator<Vilma::MAELoss>);
+    oracle_builder.reset(new OracleBuilder<VilmaOracle::SvorImc>);
   } else if (oracle_name == "MOrd") {
     model_evaluator.reset(
         new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
+    oracle_builder.reset(new OracleBuilder<VilmaOracle::MOrd<Vilma::MAELoss>>);
   } else if (oracle_name == "PwMOrdReg") {
-    //    std::vector<int> cut_labels = {0, 20, 40, 54};
-    //    VilmaEvaluators::PwMOrdModelEvaluator<Vilma::MAELoss> model_evaluator(
-    //        cut_labels);
-    //
-    //    RunExperiment<VilmaOracle::PwMOrdRegularized<Vilma::MAELoss>>(
-    //        &model_evaluator, input_dir, output_dir, lambda, supervised,
-    //        fraction);
+    std::vector<int> cut_labels = {0, 20, 40, 54};
+    model_evaluator.reset(
+        new VilmaEvaluators::PwMOrdModelEvaluator<Vilma::MAELoss>(cut_labels));
+    oracle_builder.reset(
+        new PwOracleBuilder<VilmaOracle::PwMOrdRegularized<Vilma::MAELoss>>(
+            cut_labels));
   } else {
     cout << "Oracle " << oracle_name << " is not supported!" << endl;
     return 0;
   }
 
-  RunExperiment<VilmaOracle::Vilma<Vilma::MAELoss>>(
-      model_evaluator.get(), input_dir, output_dir, lambda, supervised,
-      fraction);
+  RunExperiment(oracle_builder.get(), model_evaluator.get(), input_dir,
+                output_dir, lambda, supervised, fraction);
 
   return 0;
 }

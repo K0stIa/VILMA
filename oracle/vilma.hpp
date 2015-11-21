@@ -9,7 +9,7 @@
  */
 
 template <class Loss>
-VilmaOracle::Vilma<Loss>::Vilma(Data *data)
+VilmaOracle::VILma<Loss>::VILma(Data *data)
     : VilmaRegularized<Loss>(data),
       beta_(data->GetDataNumClasses()),
       free_parameters_oracle_(
@@ -21,7 +21,7 @@ VilmaOracle::Vilma<Loss>::Vilma(Data *data)
 }
 
 template <class Loss>
-double VilmaOracle::Vilma<Loss>::risk(const double *weights, double *subgrad) {
+double VilmaOracle::VILma<Loss>::risk(const double *weights, double *subgrad) {
   const int nexamples = data_->GetDataNumExamples();
   DenseVecD params(dim, const_cast<double *>(weights));
   DenseVecD gradient(dim, subgrad);
@@ -48,7 +48,7 @@ double VilmaOracle::Vilma<Loss>::risk(const double *weights, double *subgrad) {
 }
 
 template <class Loss>
-std::vector<double> VilmaOracle::Vilma<Loss>::Train() {
+std::vector<double> VilmaOracle::VILma<Loss>::Train() {
   std::vector<double> opt_w = BMRM_Solver::learn();
   DenseVecD params(dim, &opt_w[0]);
 

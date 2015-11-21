@@ -34,6 +34,7 @@ class SvorImcReg : public OrdinalRegression {
   using OrdinalRegression::SingleExampleBestLabelLookup;
   using OrdinalRegression::ProjectData;
   using OrdinalRegression::GetOracleData;
+  using OrdinalRegression::Train;
 
   virtual double UpdateSingleExampleGradient(
       const DenseVecD &theta, const double wx, const int example_idx,

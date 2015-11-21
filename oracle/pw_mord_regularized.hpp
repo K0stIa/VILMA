@@ -10,7 +10,6 @@
 
 #include "data.h"
 #include "sparse_vector.h"
-#include "loss.h"
 
 #include "Parameters.h"
 #include "QpGenerator.h"
@@ -18,17 +17,13 @@
 #include <iostream>
 #include <memory>
 
-#include "pw_mord_regularized.h"
-
-using namespace VilmaOracle;
-
 template <class Loss>
-PwMOrdRegularized<Loss>::PwMOrdRegularized(Data *data,
-                                           const std::vector<int> &cut_labels)
+VilmaOracle::PwMOrdRegularized<Loss>::PwMOrdRegularized(
+    Data *data, const std::vector<int> &cut_labels)
     : PwVilmaRegularized<Loss>(data, cut_labels) {}
 
 template <class Loss>
-double PwMOrdRegularized<Loss>::UpdateSingleExampleGradient(
+double VilmaOracle::PwMOrdRegularized<Loss>::UpdateSingleExampleGradient(
     const DenseVecD &beta, const double *wx, const int example_idx,
     double *w_gradient, double *free_params_gradient) {
   //
@@ -81,5 +76,3 @@ double PwMOrdRegularized<Loss>::UpdateSingleExampleGradient(
 
   return std::get<0>(subproblem) - psi;
 }
-
-template class VilmaOracle::PwMOrdRegularized<Vilma::MAELoss>;

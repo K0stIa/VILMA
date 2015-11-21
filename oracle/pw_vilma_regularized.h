@@ -13,6 +13,7 @@
 
 #include <vector>
 
+#include "sparse_vector.h"
 #include "ordinal_regression.h"
 
 namespace VilmaOracle {
@@ -26,6 +27,7 @@ class PwVilmaRegularized : public OrdinalRegression {
   virtual ~PwVilmaRegularized() = default;
 
   using OrdinalRegression::GetOracleData;
+  using OrdinalRegression::Train;
 
   int GetOracleParamsDim();
   virtual int GetFreeParamsDim() override;
@@ -68,5 +70,7 @@ class PwVilmaRegularized : public OrdinalRegression {
   };
 };
 }
+
+#include "pw_vilma_regularized.hpp"
 
 #endif /* defined(__PwVilmaRegularized__) */

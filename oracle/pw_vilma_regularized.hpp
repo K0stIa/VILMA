@@ -9,8 +9,6 @@
  */
 
 #include "data.h"
-#include "sparse_vector.h"
-#include "loss.h"
 
 #include "Parameters.h"
 #include "QpGenerator.h"
@@ -20,11 +18,9 @@
 
 #include "pw_vilma_regularized.h"
 
-using namespace VilmaOracle;
-
 template <class Loss>
-PwVilmaRegularized<Loss>::PwVilmaRegularized(Data *data,
-                                             const std::vector<int> &cut_labels)
+VilmaOracle::PwVilmaRegularized<Loss>::PwVilmaRegularized(
+    Data *data, const std::vector<int> &cut_labels)
     : OrdinalRegression(data), kPW((int)cut_labels.size()) {
   // setup BMRM dim
   dim = GetOracleParamsDim();
@@ -34,7 +30,7 @@ PwVilmaRegularized<Loss>::PwVilmaRegularized(Data *data,
 }
 
 template <class Loss>
-double *PwVilmaRegularized<Loss>::BuildAlphas(
+double *VilmaOracle::PwVilmaRegularized<Loss>::BuildAlphas(
     const std::vector<int> &cut_labels, const int ny) {
   const int kPW = (int)cut_labels.size();
   double *alpha_buffer = new double[kPW * (ny + 1)];
@@ -58,17 +54,18 @@ double *PwVilmaRegularized<Loss>::BuildAlphas(
 }
 
 template <class Loss>
-int PwVilmaRegularized<Loss>::GetOracleParamsDim() {
+int VilmaOracle::PwVilmaRegularized<Loss>::GetOracleParamsDim() {
   return data_->GetDataDim() * kPW + GetFreeParamsDim();
 }
 
 template <class Loss>
-int PwVilmaRegularized<Loss>::GetFreeParamsDim() {
+int VilmaOracle::PwVilmaRegularized<Loss>::GetFreeParamsDim() {
   return data_->GetDataNumClasses();
 }
 
 template <class Loss>
-double PwVilmaRegularized<Loss>::risk(const double *weights, double *subgrad) {
+double VilmaOracle::PwVilmaRegularized<Loss>::risk(const double *weights,
+                                                   double *subgrad) {
   const int pw_dim = data_->GetDataDim() * kPW;
   std::fill(subgrad, subgrad + GetOracleParamsDim(), 0);
 
@@ -98,8 +95,10 @@ double PwVilmaRegularized<Loss>::risk(const double *weights, double *subgrad) {
 }
 
 template <class Loss>
-void PwVilmaRegularized<Loss>::ProjectData(const DenseVecD &aw, Data *data,
-                                           double *wx_buffer, const int kPW) {
+void VilmaOracle::PwVilmaRegularized<Loss>::ProjectData(const DenseVecD &aw,
+                                                        Data *data,
+                                                        double *wx_buffer,
+                                                        const int kPW) {
   const int dim_x = data->GetDataDim();
   // create weight components
   vector<std::unique_ptr<DenseVecD>> w(kPW);
@@ -119,7 +118,7 @@ void PwVilmaRegularized<Loss>::ProjectData(const DenseVecD &aw, Data *data,
 }
 
 template <class Loss>
-double PwVilmaRegularized<Loss>::UpdateSingleExampleGradient(
+double VilmaOracle::PwVilmaRegularized<Loss>::UpdateSingleExampleGradient(
     const DenseVecD &beta, const double *wx, const int example_idx,
     double *w_gradient, double *free_params_gradient) {
   // extract example labels
@@ -185,7 +184,8 @@ double PwVilmaRegularized<Loss>::UpdateSingleExampleGradient(
 }
 
 template <class Loss>
-std::pair<double, int> PwVilmaRegularized<Loss>::SingleExampleBestLabelLookup(
+std::pair<double, int>
+VilmaOracle::PwVilmaRegularized<Loss>::SingleExampleBestLabelLookup(
     const double *wx, const double *alpha, const double *beta, int from, int to,
     const int gt_y, const int kPW, const Loss *const loss_ptr_) {
   double best_cost = 0;
@@ -207,5 +207,3 @@ std::pair<double, int> PwVilmaRegularized<Loss>::SingleExampleBestLabelLookup(
   assert(best_y != -1);
   return std::make_pair(best_cost, best_y);
 }
-
-template class VilmaOracle::PwVilmaRegularized<Vilma::MAELoss>;

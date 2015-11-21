@@ -18,8 +18,6 @@
 
 #include "pw_vilma_regularized.h"
 
-#include "Oracle.h"
-
 struct Data;
 
 namespace VilmaOracle {
@@ -39,12 +37,9 @@ class PwMOrdRegularized : public PwVilmaRegularized<Loss> {
   using PwVilmaRegularized<Loss>::BuildAlphas;
   using PwVilmaRegularized<Loss>::risk;
   using PwVilmaRegularized<Loss>::SingleExampleBestLabelLookup;
+  using PwVilmaRegularized<Loss>::Train;
 
  protected:
-  /**
-   * Single example gradient computation
-   */
-
   virtual double UpdateSingleExampleGradient(
       const DenseVecD &beta, double wx, const int example_idx,
       double *w_gradient, double *free_params_gradient) override {
@@ -63,5 +58,7 @@ class PwMOrdRegularized : public PwVilmaRegularized<Loss> {
   using PwVilmaRegularized<Loss>::wx_buffer_;
 };
 }
+
+#include "pw_mord_regularized.hpp"
 
 #endif /* defined(__sparse_sgd__pw_mord_no_beta_bmrm_oracle__) */
