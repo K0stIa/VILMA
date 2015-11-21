@@ -33,7 +33,7 @@ class VilmaRegularized : public MOrdRegularized<Loss> {
   using MOrdRegularized<Loss>::SingleExampleBestLabelLookup;
 
   virtual double UpdateSingleExampleGradient(
-      const DenseVecD &beta, const double wx, const int example_idx,
+      const DenseVecD &beta, double *const wx, const int example_idx,
       double *w_gradient, double *free_params_gradient) override;
 
  protected:

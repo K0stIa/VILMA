@@ -39,7 +39,7 @@ int AccpmConstrainedThetaTailParametersOracle::eval(
 
     for (int example_idx = 0; example_idx < nexamples; ++example_idx) {
       double val = ord_oracle->UpdateSingleExampleGradient(
-          params, wx_buffer_[example_idx], example_idx, nullptr,
+          params, wx_buffer_ + example_idx, example_idx, nullptr,
           gradient.data_);
 
       obj += val;

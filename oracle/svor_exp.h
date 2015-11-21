@@ -33,7 +33,7 @@ class SvorExp : public SvorImc {
   using SvorImc::Train;
 
   virtual double UpdateSingleExampleGradient(
-      const DenseVecD &theta, const double wx, const int example_idx,
+      const DenseVecD &theta, double *const wx, const int example_idx,
       double *w_gradient, double *free_params_gradient) override;
 
  protected:

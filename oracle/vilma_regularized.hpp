@@ -14,13 +14,13 @@ VilmaOracle::VilmaRegularized<Loss>::VilmaRegularized(Data *data)
 
 template <class Loss>
 double VilmaOracle::VilmaRegularized<Loss>::UpdateSingleExampleGradient(
-    const DenseVecD &beta, const double wx, const int example_idx,
+    const DenseVecD &beta, double *const wx, const int example_idx,
     double *w_gradient, double *free_params_gradient) {
   // extract example labels
   const int gt_y = data_->y->data_[example_idx];
 
   const auto subproblem = SingleExampleBestLabelLookup(
-      wx, beta, 0, data_->GetDataNumClasses() - 1, gt_y, &loss_);
+      *wx, beta, 0, data_->GetDataNumClasses() - 1, gt_y, &loss_);
 
   const int &best_y = std::get<1>(subproblem);
 
@@ -41,7 +41,7 @@ double VilmaOracle::VilmaRegularized<Loss>::UpdateSingleExampleGradient(
     free_params_gradient[gt_y] -= 1;
   }
 
-  const double psi = wx * gt_y + beta[gt_y];
+  const double psi = *wx * gt_y + beta[gt_y];
 
   return std::get<0>(subproblem) - psi;
 }

@@ -44,7 +44,7 @@ class OrdinalRegression : public BMRM_Solver {
   virtual std::vector<double> Train();
 
   virtual double UpdateSingleExampleGradient(const DenseVecD &theta,
-                                             const double wx,
+                                             double *const wx,
                                              const int example_idx,
                                              double *w_gradient,
                                              double *free_params_gradient) = 0;

@@ -19,7 +19,7 @@ using namespace VilmaOracle;
 SvorImcReg::SvorImcReg(Data *data) : OrdinalRegression(data) {}
 
 double SvorImcReg::UpdateSingleExampleGradient(const DenseVecD &theta,
-                                               const double wx,
+                                               double *const wx,
                                                const int example_idx,
                                                double *w_gradient,
                                                double *free_params_gradient) {
@@ -41,7 +41,7 @@ double SvorImcReg::UpdateSingleExampleGradient(const DenseVecD &theta,
     if (gt_yr <= y) {
       sgn = -1;
     }
-    double score = 1.0 - (wx - theta[y]) * sgn;
+    double score = 1.0 - (*wx - theta[y]) * sgn;
     if (score > 0) {
       obj += score;
       if (free_params_gradient != nullptr) {

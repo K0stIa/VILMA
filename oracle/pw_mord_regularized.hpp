@@ -24,7 +24,7 @@ VilmaOracle::PwMOrdRegularized<Loss>::PwMOrdRegularized(
 
 template <class Loss>
 double VilmaOracle::PwMOrdRegularized<Loss>::UpdateSingleExampleGradient(
-    const DenseVecD &beta, const double *wx, const int example_idx,
+    const DenseVecD &beta, double *const wx, const int example_idx,
     double *w_gradient, double *free_params_gradient) {
   //
   const int gt_y = data_->y->data_[example_idx];

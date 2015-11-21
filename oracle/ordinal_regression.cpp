@@ -60,7 +60,7 @@ double OrdinalRegression::risk(const double *weights, double *subgrad) {
   double obj = 0;
   for (int example_idx = 0; example_idx < nexamples; ++example_idx) {
     double val = this->UpdateSingleExampleGradient(
-        free_params, wx_buffer_[example_idx], example_idx, subgrad,
+        free_params, wx_buffer_.get() + example_idx, example_idx, subgrad,
         subgrad + data_->GetDataDim());
     obj += val;
   }

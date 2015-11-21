@@ -119,7 +119,7 @@ void VilmaOracle::PwVilmaRegularized<Loss>::ProjectData(const DenseVecD &aw,
 
 template <class Loss>
 double VilmaOracle::PwVilmaRegularized<Loss>::UpdateSingleExampleGradient(
-    const DenseVecD &beta, const double *wx, const int example_idx,
+    const DenseVecD &beta, double *const wx, const int example_idx,
     double *w_gradient, double *free_params_gradient) {
   // extract example labels
   const int gt_yl = data_->yl->data_[example_idx];

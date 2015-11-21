@@ -26,7 +26,7 @@ SvorExp::SvorExp(Data *data) : SvorImc(data) {
 }
 
 double SvorExp::UpdateSingleExampleGradient(const DenseVecD &theta,
-                                            const double wx,
+                                            double *const wx,
                                             const int example_idx,
                                             double *w_gradient,
                                             double *free_params_gradient) {
@@ -38,7 +38,7 @@ double SvorExp::UpdateSingleExampleGradient(const DenseVecD &theta,
   int coef = 0;
 
   if (gt_yl > 0) {
-    double val = 1.0 - wx + theta[gt_yl - 1];
+    double val = 1.0 - *wx + theta[gt_yl - 1];
     if (val > 0) {
       obj += val;
       --coef;
@@ -49,7 +49,7 @@ double SvorExp::UpdateSingleExampleGradient(const DenseVecD &theta,
   }
 
   if (gt_yr < data_->ny - 1) {
-    double val = 1.0 + wx - theta[gt_yr];
+    double val = 1.0 + *wx - theta[gt_yr];
     if (val > 0) {
       obj += val;
       ++coef;

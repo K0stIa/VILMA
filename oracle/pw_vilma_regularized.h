@@ -50,24 +50,15 @@ class PwVilmaRegularized : public OrdinalRegression {
 
   using OrdinalRegression::dim;
 
-  virtual double UpdateSingleExampleGradient(const DenseVecD &beta,
-                                             const double *wx,
-                                             const int example_idx,
-                                             double *w_gradient,
-                                             double *free_params_gradient);
+  virtual double UpdateSingleExampleGradient(
+      const DenseVecD &beta, double *const wx, const int example_idx,
+      double *w_gradient, double *free_params_gradient) override;
 
   Loss loss_;
   // Oracle is never an owner of Data
   using OrdinalRegression::data_;
   // buffer to store results <w,x> for all x
   using OrdinalRegression::wx_buffer_;
-
- private:
-  virtual double UpdateSingleExampleGradient(
-      const DenseVecD &beta, const double wx, const int example_idx,
-      double *w_gradient, double *free_params_gradient) override {
-    throw;
-  };
 };
 }
 

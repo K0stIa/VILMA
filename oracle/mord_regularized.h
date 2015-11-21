@@ -38,7 +38,7 @@ class MOrdRegularized : public OrdinalRegression {
       const Loss *const loss_ptr_);
 
   virtual double UpdateSingleExampleGradient(
-      const DenseVecD &beta, const double wx, const int example_idx,
+      const DenseVecD &beta, double *const wx, const int example_idx,
       double *w_gradient, double *free_params_gradient) override;
 
  protected:

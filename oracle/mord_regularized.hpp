@@ -35,17 +35,17 @@ VilmaOracle::MOrdRegularized<Loss>::SingleExampleBestLabelLookup(
 
 template <class Loss>
 double VilmaOracle::MOrdRegularized<Loss>::UpdateSingleExampleGradient(
-    const DenseVecD &beta, const double wx, const int example_idx,
+    const DenseVecD &beta, double *const wx, const int example_idx,
     double *w_gradient, double *free_params_gradient) {
   // extract example labels
   const int gt_yl = data_->yl->data_[example_idx];
   const int gt_yr = data_->yr->data_[example_idx];
 
   const auto left_subproblem =
-      SingleExampleBestLabelLookup(wx, beta, 0, gt_yl, gt_yl, &loss_);
+      SingleExampleBestLabelLookup(*wx, beta, 0, gt_yl, gt_yl, &loss_);
 
   const auto right_subproblem = SingleExampleBestLabelLookup(
-      wx, beta, gt_yr, data_->GetDataNumClasses() - 1, gt_yr, &loss_);
+      *wx, beta, gt_yr, data_->GetDataNumClasses() - 1, gt_yr, &loss_);
 
   const int &best_yl = std::get<1>(left_subproblem);
   const int &best_yr = std::get<1>(right_subproblem);
@@ -69,7 +69,7 @@ double VilmaOracle::MOrdRegularized<Loss>::UpdateSingleExampleGradient(
     free_params_gradient[gt_yr] -= 1;
   }
 
-  const double psi = wx * (gt_yl + gt_yr) + beta[gt_yl] + beta[gt_yr];
+  const double psi = *wx * (gt_yl + gt_yr) + beta[gt_yl] + beta[gt_yr];
 
   return std::get<0>(left_subproblem) + std::get<0>(right_subproblem) - psi;
 }
