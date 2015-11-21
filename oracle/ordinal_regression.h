@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <vector>
+#include <memory>
 
 #include "../bmrm/bmrm_solver.h"
 #include "dense_vector.h"

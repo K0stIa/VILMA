@@ -23,8 +23,7 @@ typedef Vilma::DenseVector<double> DenseVecD;
 
 class ModelEvaluator {
  public:
-  ModelEvaluator() = default;
-  virtual ~ModelEvaluator() = default;
+  virtual ~ModelEvaluator() noexcept (true) = default;
 
   virtual double Evaluate(Data *data, double *params) const = 0;
 };
@@ -32,8 +31,7 @@ class ModelEvaluator {
 template <class Loss>
 class OrdModelEvaluator : public ModelEvaluator {
  public:
-  OrdModelEvaluator() = default;
-  virtual ~OrdModelEvaluator() = default;
+  virtual ~OrdModelEvaluator() noexcept (true) = default;
 
   virtual double Evaluate(Data *data, double *params) const {
     const int num_examples = data->GetDataNumExamples();
@@ -58,7 +56,7 @@ template <class Loss>
 class MOrdModelEvaluator : public ModelEvaluator {
  public:
   MOrdModelEvaluator() = default;
-  virtual ~MOrdModelEvaluator() = default;
+  virtual ~MOrdModelEvaluator() noexcept (true) = default;
 
   double Evaluate(Data *data, double *params) const override {
     const int num_examples = data->GetDataNumExamples();
@@ -84,8 +82,7 @@ class MOrdModelEvaluator : public ModelEvaluator {
 template <class Loss>
 class PwMOrdModelEvaluator : public ModelEvaluator {
  public:
-  PwMOrdModelEvaluator() = delete;
-  virtual ~PwMOrdModelEvaluator() = default;
+  virtual ~PwMOrdModelEvaluator() noexcept (true) = default;
 
   PwMOrdModelEvaluator(const std::vector<int> &cut_labels) {
     cut_labels_ = cut_labels;
