@@ -8,9 +8,6 @@
  * Copyright (C) 2015 Kostiantyn Antoniuk
  */
 
-#include "oracle/single_gender_no_beta_bmrm_oracle.h"
-#include "oracle/single_gender_no_theta_exp_bmrm_oracle.h"
-
 #include "dense_vector.h"
 #include "data.h"
 #include "loss.h"
@@ -23,18 +20,14 @@
 #include <chrono>
 #include <map>
 
-#include "QpGenerator.h"
-#include "Parameters.h"
-#include "AccpmBlasInterface.h"
+#include "evaluators.hpp"
 
-using namespace Accpm;
 using namespace std;
 
 using std::vector;
 using std::string;
 
 typedef Vilma::DenseVector<double> DenseVecD;
-typedef Vilma::MAELoss Loss;
 
 #ifdef LOCAL_HOST
 static const string kExperimentDir =
@@ -44,11 +37,9 @@ static const string kExperimentDir =
     "/mnt/datagrid/personal/antonkos/experiments/jml/";
 #endif
 
-template <class Oracle>
-pair<vector<double>, vector<double>> ExtractResults(const string kDataset,
-                                                    const string kOracleName,
-                                                    const int kAge,
-                                                    const int supervised) {
+pair<vector<double>, vector<double>> ExtractResults(
+    VilmaEvaluators::ModelEvaluator *model_evaluator, const string kDataset,
+    const string kOracleName, const int kAge, const int supervised) {
   const string LPIP = "lpip";
   const string MORPH = "morph";
 
@@ -93,8 +84,6 @@ pair<vector<double>, vector<double>> ExtractResults(const string kDataset,
         LoadData(trn_filepath, &data, fraction, supervised);
         std::cout << "Data loaded\n";
 
-        Oracle single_gender_oracle(&data);
-
         std::ifstream file(result_filename + ".bin",
                            std::ios::in | std::ios::binary);
         if (!file) {
@@ -110,8 +99,8 @@ pair<vector<double>, vector<double>> ExtractResults(const string kDataset,
         cout << "S: " << s << endl;
 
         // compute train error
-        double trn_error =
-            single_gender_oracle.EvaluateModel(&data, opt_params.data_);
+
+        double trn_error = model_evaluator->Evaluate(&data, opt_params.data_);
         std::cout << "trn error: " << trn_error << std::endl;
 
         Data val_data;
@@ -123,7 +112,7 @@ pair<vector<double>, vector<double>> ExtractResults(const string kDataset,
 
         // compute validation error
         double val_error =
-            single_gender_oracle.EvaluateModel(&val_data, opt_params.data_);
+            model_evaluator->Evaluate(&val_data, opt_params.data_);
         std::cout << "val error: " << val_error << std::endl;
 
         Data tst_data;
@@ -134,16 +123,8 @@ pair<vector<double>, vector<double>> ExtractResults(const string kDataset,
 
         // compute validation error
         double tst_error =
-            single_gender_oracle.EvaluateModel(&tst_data, opt_params.data_);
+            model_evaluator->Evaluate(&tst_data, opt_params.data_);
         std::cout << "tst error: " << tst_error << std::endl;
-
-        //        double trn_error, val_error, tst_error;
-        //
-        //        std::ifstream file(result_filename + ".txt",
-        //        std::ios::binary);
-        //
-        //        file >> trn_error >> val_error >> tst_error;
-        //        file.close();
 
         if (best_val_error > val_error) {
           best_val_error = val_error;
@@ -161,43 +142,49 @@ pair<vector<double>, vector<double>> ExtractResults(const string kDataset,
   return std::make_pair(fraction_errors, fraction_stds);
 }
 
+template <class Loss>
 void BuildTable2(const string dataset, const string classifier_id) {
   // supervised 3300
   vector<vector<double>> errors_mae_3300, stds_mae_3300;
+
   vector<int> age_set = {5, 10, 20};
+
   const string MAE_3300_SingleGenderNoBetaBmrmOracle =
-      classifier_id + "-ZOLoss-" + to_string(3300);
+      classifier_id + "-" + Loss::name() + "-" + to_string(3300);
+
   std::cout << "Oracle: " << MAE_3300_SingleGenderNoBetaBmrmOracle << std::endl;
+
+  std::unique_ptr<VilmaEvaluators::OrdModelEvaluator<Loss>> model_evaluator(
+      new VilmaEvaluators::OrdModelEvaluator<Loss>);
+
   for (int age : age_set) {
-    auto res = ExtractResults<
-        BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss>>(
-        dataset, MAE_3300_SingleGenderNoBetaBmrmOracle, age, 3300);
+    auto res = ExtractResults(model_evaluator.get(), dataset,
+                              MAE_3300_SingleGenderNoBetaBmrmOracle, age, 3300);
     errors_mae_3300.push_back(res.first);
     stds_mae_3300.push_back(res.second);
   }
   // supervised 6600
   vector<vector<double>> errors_mae_6600, stds_mae_6600;
   const string MAE_6600_SingleGenderNoBetaBmrmOracle =
-      classifier_id + "-ZOLoss-" + to_string(6600);
+      classifier_id + "-" + Loss::name() + "-" + to_string(6600);
   std::cout << "Oracle: " << MAE_6600_SingleGenderNoBetaBmrmOracle << std::endl;
   for (int age : age_set) {
-    auto res = ExtractResults<
-        BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss>>(
-        dataset, MAE_6600_SingleGenderNoBetaBmrmOracle, age, 6600);
+    auto res = ExtractResults(model_evaluator.get(), dataset,
+                              MAE_6600_SingleGenderNoBetaBmrmOracle, age, 6600);
     errors_mae_6600.push_back(res.first);
     stds_mae_6600.push_back(res.second);
   }
 
   // supervised baseline
   const string MAE_supervised_SingleGenderNoBetaBmrmOracle =
-      classifier_id + "-ZOLoss-baseline";
+      classifier_id + "-" + Loss::name() + "-baseline";
   vector<vector<double>> errors_mae_baseline, stds_mae_baseline;
   std::cout << "Oracle: " << MAE_supervised_SingleGenderNoBetaBmrmOracle
             << std::endl;
   for (int age : {5}) {
-    auto res = ExtractResults<
-        BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss>>(
-        dataset, MAE_supervised_SingleGenderNoBetaBmrmOracle, age, 3300);
+    auto res =
+        ExtractResults(model_evaluator.get(), dataset,
+                       MAE_supervised_SingleGenderNoBetaBmrmOracle, age, 3300);
     errors_mae_baseline.push_back(res.first);
     stds_mae_baseline.push_back(res.second);
   }
@@ -234,17 +221,22 @@ void BuildTable2(const string dataset, const string classifier_id) {
   }
 }
 
+template <class Loss>
 void BuildBaselineTable(const string dataset, const string classifier_id) {
   // supervised baseline
   const string MAE_supervised_SingleGenderNoBetaBmrmOracle =
-      classifier_id + "-ZOLoss-baseline";
+      classifier_id + "-" + Loss::name() + "-baseline";
   vector<vector<double>> errors_mae_baseline, stds_mae_baseline;
   std::cout << "Oracle: " << MAE_supervised_SingleGenderNoBetaBmrmOracle
             << std::endl;
+
+  std::unique_ptr<VilmaEvaluators::OrdModelEvaluator<Loss>> model_evaluator(
+      new VilmaEvaluators::OrdModelEvaluator<Loss>);
+
   for (int age : {5}) {
-    auto res = ExtractResults<
-        BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss>>(
-        dataset, MAE_supervised_SingleGenderNoBetaBmrmOracle, age, 3300);
+    auto res =
+        ExtractResults(model_evaluator.get(), dataset,
+                       MAE_supervised_SingleGenderNoBetaBmrmOracle, age, 3300);
     errors_mae_baseline.push_back(res.first);
     stds_mae_baseline.push_back(res.second);
   }
@@ -273,16 +265,15 @@ int main(int argc, const char *argv[]) {
   }
 
   const string classifier_id = argv[2];
-  if (classifier_id != "SingleGenderNoBetaBmrmOracle" &&
-      classifier_id != "SingleGenderNoThetaExpBmrmOracle") {
+  if (classifier_id != "Vilma" && classifier_id != "SvorImc") {
     cout << "Error! Bad dataset name! Must be either morph or lpip.";
     return 0;
   }
 
 #endif
 
-  BuildTable2(dataset, classifier_id);
-  //  BuildBaselineTable(dataset, classifier_id);
+  BuildTable2<Vilma::MAELoss>(dataset, classifier_id);
+  // BuildBaselineTable<Vilma::MAELoss>(dataset, classifier_id);
 
   return 0;
 }
