@@ -213,7 +213,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     mexPrintf("n_classes: %d \n", n_classes);
     data.ny = n_classes;
 
-    if (!mxIsDouble(prhs[5])) {
+    if (!mxIsDouble(prhs[4])) {
       mexPrintf("terminating... lambda should be a real number");
       return;
     }
@@ -271,10 +271,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
       opt_w = TrainClassifier<VilmaMae>(&data, lambda, bmrm_buffer_size);
     } else if (strcmp("vilma-reg-mae", cmd) == 0) {
       opt_w = TrainClassifier<VilmaRegMae>(&data, lambda, bmrm_buffer_size);
-    } else if (strcmp("mord-reg-mae", cmd) == 0) {
-      opt_w = TrainClassifier<MOrdRegMae>(&data, lambda, bmrm_buffer_size);
-    } else if (strcmp("mord-mae", cmd) == 0) {
-      opt_w = TrainClassifier<MOrdMae>(&data, lambda, bmrm_buffer_size);
     }
     if (nlhs >= 1) {
       plhs[0] = mxCreateDoubleMatrix((int)opt_w.size(), 1, mxREAL);
