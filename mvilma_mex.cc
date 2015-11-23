@@ -24,7 +24,7 @@ typedef VilmaOracle::PwMOrd<Vilma::MAELoss> PwOracle;
 // typedef BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss> SvorImc;
 
 // MOrd and VILma realisations are swaped!!!! FIX THIS!
-typedef VilmaOracle::MOrd<Vilma::MAELoss> VilmaMae;
+typedef VilmaOracle::VILma<Vilma::MAELoss> VilmaMae;
 
 typedef Vilma::DenseVector<double> DenseVecD;
 

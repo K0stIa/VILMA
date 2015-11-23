@@ -8,8 +8,8 @@
  * Copyright (C) 2015 Kostiantyn Antoniuk
  */
 
-#ifndef vilma_hpp
-#define vilma_hpp
+#ifndef vilma_h
+#define vilma_h
 
 #include "vilma_regularized.h"
 #include "tail_parameters_oracle.h"
@@ -40,12 +40,11 @@ class VILma : public VilmaRegularized<Loss> {
 
  protected:
   using VilmaRegularized<Loss>::dim;
-  using VilmaRegularized<Loss>::loss_;
+  Loss loss_;
   // Oracle is never an owner of Data
   using VilmaRegularized<Loss>::data_;
   // buffer to store results <w,x> for all x
   using VilmaRegularized<Loss>::wx_buffer_;
-
   // beta oracle
   VilmaAccpmOracle::TailParametersOptimizationEngine free_parameters_oracle_;
 
@@ -56,4 +55,4 @@ class VILma : public VilmaRegularized<Loss> {
 
 #include "vilma.hpp"
 
-#endif /* vilma_hpp */
+#endif /* vilma_h */
