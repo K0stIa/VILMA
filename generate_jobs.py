@@ -46,7 +46,7 @@ def print_sh_job_file(data_name, oracle_id, supervised_num, lmbda, permid, year_
 
     file_body = """#!/bin/bash
 YEAR=%d
-BIN_PATH=/home.dokt/antonkos/code/vilma/build/main
+BIN_PATH=/home.dokt/antonkos/code/VILMA/build/main
 DATA_PATH=/datagrid/personal/antonkos/experiments/jml/%s
 
 """ % (year_range, data_name)
@@ -63,15 +63,15 @@ if __name__ == "__main__":
     target_oracles = ["SingleGenderNoThetaExpBmrmOracle",
                       "SingleGenderNoBetaBmrmOracle"]
 
-    Loss = "ZOLoss"
-    data_name = MORPH
-    for supervised_num in [3300]:
-        #for fraction in [3300, 6600, 11000, 16000, 21000]:
-        for fraction in [3300, 6600, 10000, 13000, 23000, 33000]:
+    Loss = "MAELoss"
+    data_name = LPIP
+    for supervised_num in [3300, 6600]:
+        for fraction in [3300, 6600, 11000, 16000, 21000]:
+        #for fraction in [3300, 6600, 10000, 13000, 23000, 33000]:
             if fraction < supervised_num:
                 continue
-            for oracle_id in ["SingleGenderNoThetaExpBmrmOracle"]:
-                for year_range in [5]:
+            for oracle_id in ["SvorImc"]:
+                for year_range in [5, 10, 20]:
                     for lmbda in [0.1, 0.01]:
                         for permid in [1, 2, 3]:
                             print_sh_job_file(data_name, oracle_id + "-" + Loss, fraction,
