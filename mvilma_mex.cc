@@ -23,8 +23,10 @@ typedef VilmaOracle::PwMOrd<Vilma::MAELoss> PwOracle;
 // typedef BmrmOracle::PwSingleGenderNoBetaBmrmOracle<Vilma::MAELoss> PwOracle;
 // typedef BmrmOracle::SingleGenderNoThetaExpBmrmOracle<Vilma::MAELoss> SvorImc;
 
-// MOrd and VILma realisations are swaped!!!! FIX THIS!
 typedef VilmaOracle::VILma<Vilma::MAELoss> VilmaMae;
+typedef VilmaOracle::VilmaRegularized<Vilma::MAELoss> VilmaRegMae;
+typedef VilmaOracle::MOrd<Vilma::MAELoss> MOrdMae;
+typedef VilmaOracle::MOrdRegularized<Vilma::MAELoss> MOrdRegMae;
 
 typedef Vilma::DenseVector<double> DenseVecD;
 
@@ -192,7 +194,48 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
       }
     }
 
-  } else if (strcmp("svorimc", cmd) == 0 || strcmp("vilma-mae", cmd) == 0) {
+  } else if (strcmp("mord-mae", cmd) == 0 || strcmp("mord-reg-mae", cmd) == 0) {
+    if (!mxIsInt32(prhs[2]) || !mxIsInt32(prhs[3])) {
+      mexErrMsgTxt(
+          "Input labelings(or cut_labels) are not instances of not int32 "
+          "class.");
+      return;
+    }
+
+    Data data;
+    BuildVilmaData(prhs[1], prhs[2], prhs[2], prhs[2], &data);
+    // prhs[1] -- sparse feature matrix
+    // prhs[2] -- labels
+    // prhs[3] -- n_classes
+    // prhs[4] -- lambda
+
+    const int n_classes = mxGetScalar(prhs[3]);
+    mexPrintf("n_classes: %d \n", n_classes);
+    data.ny = n_classes;
+
+    if (!mxIsDouble(prhs[5])) {
+      mexPrintf("terminating... lambda should be a real number");
+      return;
+    }
+    const double lambda = mxGetScalar(prhs[4]);
+    mexPrintf("lambda: %f\n", lambda);
+
+    const int bmrm_buffer_size = 500;
+    std::vector<double> opt_w;
+    if (strcmp("mord-reg-mae", cmd) == 0) {
+      opt_w = TrainClassifier<MOrdRegMae>(&data, lambda, bmrm_buffer_size);
+    } else if (strcmp("mord-mae", cmd) == 0) {
+      opt_w = TrainClassifier<MOrdMae>(&data, lambda, bmrm_buffer_size);
+    }
+    if (nlhs >= 1) {
+      plhs[0] = mxCreateDoubleMatrix((int)opt_w.size(), 1, mxREAL);
+      double *w = mxGetPr(plhs[0]);
+      for (int i = 0; i < (int)opt_w.size(); ++i) {
+        w[i] = opt_w[i];
+      }
+    }
+  } else if (strcmp("svorimc", cmd) == 0 || strcmp("vilma-mae", cmd) == 0 ||
+             strcmp("vilma-reg-mae", cmd) == 0) {
     if (!mxIsInt32(prhs[2]) || !mxIsInt32(prhs[3])) {
       mexErrMsgTxt(
           "Input labelings(or cut_labels) are not instances of not int32 "
@@ -226,6 +269,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
                                                     bmrm_buffer_size);
     } else if (strcmp("vilma-mae", cmd) == 0) {
       opt_w = TrainClassifier<VilmaMae>(&data, lambda, bmrm_buffer_size);
+    } else if (strcmp("vilma-reg-mae", cmd) == 0) {
+      opt_w = TrainClassifier<VilmaRegMae>(&data, lambda, bmrm_buffer_size);
+    } else if (strcmp("mord-reg-mae", cmd) == 0) {
+      opt_w = TrainClassifier<MOrdRegMae>(&data, lambda, bmrm_buffer_size);
+    } else if (strcmp("mord-mae", cmd) == 0) {
+      opt_w = TrainClassifier<MOrdMae>(&data, lambda, bmrm_buffer_size);
     }
     if (nlhs >= 1) {
       plhs[0] = mxCreateDoubleMatrix((int)opt_w.size(), 1, mxREAL);
