@@ -8,28 +8,34 @@
  * Copyright (C) 2015 Kostiantyn Antoniuk
  */
 
-
 #ifndef __vilma__loss__
 #define __vilma__loss__
 
-#include <stdio.h>
+#include <string>
 
 namespace Vilma {
 
-class MAELoss {
+class ScalarLossInterface {
  public:
-  inline int operator()(const int y, const int t) const {
-    return y > t ? y - t : t - y;
-  }
+  virtual inline int operator()(const int, const int) const = 0;
+  static std::string name() { return "ScalarLossInterface"; }
 };
 
-class ZOLoss {
+class MAELoss : public ScalarLossInterface {
  public:
-  inline int operator()(const int y, const int t) const {
+  inline int operator()(const int y, const int t) const override {
+    return y > t ? y - t : t - y;
+  }
+  static std::string name() { return "MAELoss"; }
+};
+
+class ZOLoss : public ScalarLossInterface {
+ public:
+  inline int operator()(const int y, const int t) const override {
     return y == t ? 0 : 1;
   }
+  static std::string name() { return "MAELoss"; }
 };
-  
 }
 
 #endif /* defined(__vilma__loss__) */
