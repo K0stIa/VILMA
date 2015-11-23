@@ -42,8 +42,8 @@ set(OBOE_LIBS ${OBOE}/lib/libaccpm.a ${OBOE}/lib/libaccpmcore.a ${OBOE}/lib/liba
 add_executable(main main.cpp ${BMRM} ${ORACLE} ${SOLVER} ${SRC})
 target_link_libraries(main ${OBOE_LIBS})
 
-#add_executable(report_resuts report_resuts.cpp ${BMRM} ${ORACLE} ${SRC})
-#target_link_libraries(report_resuts ${OBOE_LIBS})
+add_executable(report_resuts report_resuts.cpp ${BMRM} ${ORACLE} ${SRC})
+target_link_libraries(report_resuts ${OBOE_LIBS})
 
 add_executable(train_vilma train_vilma.cpp ${BMRM} ${ORACLE} ${SRC})
 target_link_libraries(train_vilma ${OBOE_LIBS})
