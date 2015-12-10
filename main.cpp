@@ -166,7 +166,8 @@ int main(int argc, const char *argv[]) {
 
   oracle_name = oracle_name.substr(0, oracle_name.find('-'));
 
-  const std::vector<int> cut_labels = {0, 25, 54};
+  // const std::vector<int> cut_labels = {0, 25, 54, 79};
+  const std::vector<int> cut_labels = {0, 20, 40, 54};
 
   std::unique_ptr<VilmaEvaluators::ModelEvaluator> model_evaluator;
   std::unique_ptr<OracleBuilderInterface> oracle_builder;
