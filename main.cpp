@@ -80,6 +80,9 @@ void RunExperiment(OracleBuilderInterface *oracle_builder,
   LoadData(input_dir + "-trn.bin", &data, fraction, supervised);
   std::cout << "Data loaded\n";
 
+  const int kNy = data.ny;
+  assert(kNy == 55 || kNy == 80);
+
   VilmaOracle::OrdinalRegression *oracle = oracle_builder->Build(&data);
 
   oracle->set_lambda(lambda);
@@ -127,6 +130,7 @@ void RunExperiment(OracleBuilderInterface *oracle_builder,
 
   LoadData(input_dir + "-val.bin", &val_data, int(1e9), int(1e9));
   std::cout << "Validation data loaded\n";
+  val_data.ny = kNy;
 
   // compute validation error
   double val_error = model_evaluator->Evaluate(&val_data, &opt_params[0]);
@@ -138,6 +142,7 @@ void RunExperiment(OracleBuilderInterface *oracle_builder,
 
   LoadData(input_dir + "-tst.bin", &tst_data, int(1e9), int(1e9));
   std::cout << "Validation data loaded\n";
+  tst_data.ny = kNy;
 
   // compute validation error
   double tst_error = model_evaluator->Evaluate(&tst_data, &opt_params[0]);
@@ -155,7 +160,7 @@ void RunExperiment(OracleBuilderInterface *oracle_builder,
 }
 
 int main(int argc, const char *argv[]) {
-  assert(argc == 7);
+  assert(argc >= 7);
 
   const string input_dir = argv[1];
   const string output_dir = argv[2];
@@ -166,8 +171,49 @@ int main(int argc, const char *argv[]) {
 
   oracle_name = oracle_name.substr(0, oracle_name.find('-'));
 
-  // const std::vector<int> cut_labels = {0, 25, 54, 79};
-  const std::vector<int> cut_labels = {0, 20, 40, 54};
+  const string dataname =
+      input_dir.substr(input_dir.find_last_of('/') + 1, input_dir.size());
+
+  std::vector<int> cut_labels;
+
+  if (argc >= 8) {
+    const int n_pieces = atoi(argv[7]);
+
+    if (dataname == "morph") {
+      switch (n_pieces) {
+        case 3:
+          cut_labels = {0, 20, 40, 54};
+          break;
+
+        case 4:
+          cut_labels = {0, 14, 26, 38, 54};
+          break;
+
+        default:
+          std::cout << "n_pieces: " << n_pieces << " is not defined!"
+                    << std::endl;
+          return 0;
+      }
+    } else if (dataname == "lpip") {
+      switch (n_pieces) {
+        case 3:
+          cut_labels = {0, 25, 54, 79};
+          break;
+
+        case 4:
+          cut_labels = {0, 20, 40, 60, 79};
+          break;
+
+        default:
+          std::cout << "n_pieces: " << n_pieces << " is not defined!"
+                    << std::endl;
+          return 0;
+      }
+    } else {
+      std::cerr << "no " << dataname << " database!\n";
+      return 0;
+    }
+  }
 
   std::unique_ptr<VilmaEvaluators::ModelEvaluator> model_evaluator;
   std::unique_ptr<OracleBuilderInterface> oracle_builder;
@@ -195,7 +241,7 @@ int main(int argc, const char *argv[]) {
   } else if (oracle_name == "SvorImcReg") {
     model_evaluator.reset(
         new VilmaEvaluators::OrdModelEvaluator<Vilma::MAELoss>);
-    oracle_builder.reset(new OracleBuilder<VilmaOracle::SvorImc>);
+    oracle_builder.reset(new OracleBuilder<VilmaOracle::SvorImcReg>);
 
   } else if (oracle_name == "SvorExp") {
     model_evaluator.reset(
