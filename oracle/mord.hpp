@@ -8,10 +8,6 @@
  * Copyright (C) 2015 Kostiantyn Antoniuk
  */
 
-#include "tail_parameters_oracle.h"
-#include "accpm_tail_parameters_oracle.h"
-#include "accpm_parameters_builder.h"
-
 template <class Loss>
 VilmaOracle::MOrd<Loss>::MOrd(Data *data)
     : MOrdRegularized<Loss>(data),

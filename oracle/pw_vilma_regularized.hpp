@@ -21,7 +21,9 @@
 template <class Loss>
 VilmaOracle::PwVilmaRegularized<Loss>::PwVilmaRegularized(
     Data *data, const std::vector<int> &cut_labels)
-    : OrdinalRegression(data), kPW((int)cut_labels.size()) {
+    : OrdinalRegression(data),
+      cut_labels(cut_labels),
+      kPW((int)cut_labels.size()) {
   // setup BMRM dim
   dim = GetOracleParamsDim();
 
@@ -34,6 +36,7 @@ double *VilmaOracle::PwVilmaRegularized<Loss>::BuildAlphas(
     const std::vector<int> &cut_labels, const int ny) {
   const int kPW = (int)cut_labels.size();
   double *alpha_buffer = new double[kPW * (ny + 1)];
+  std::fill(alpha_buffer, alpha_buffer + kPW * (ny + 1), 0);
 
   for (int z = 0; z < kPW - 1; ++z) {
     int y1 = cut_labels[z];

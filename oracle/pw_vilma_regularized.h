@@ -48,6 +48,8 @@ class PwVilmaRegularized : public OrdinalRegression {
   // store cut labels coef
   std::unique_ptr<double[]> alpha_buffer_;
 
+  const std::vector<int> cut_labels;
+
   using OrdinalRegression::dim;
 
   virtual double UpdateSingleExampleGradient(

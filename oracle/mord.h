@@ -8,8 +8,8 @@
  * Copyright (C) 2015 Kostiantyn Antoniuk
  */
 
-#ifndef mord_h
-#define mord_h
+#ifndef mord_hpp
+#define mord_hpp
 
 #include "mord_regularized.h"
 #include "tail_parameters_oracle.h"
@@ -40,11 +40,12 @@ class MOrd : public MOrdRegularized<Loss> {
 
  protected:
   using MOrdRegularized<Loss>::dim;
-  Loss loss_;
+  using MOrdRegularized<Loss>::loss_;
   // Oracle is never an owner of Data
   using MOrdRegularized<Loss>::data_;
   // buffer to store results <w,x> for all x
   using MOrdRegularized<Loss>::wx_buffer_;
+
   // beta oracle
   VilmaAccpmOracle::TailParametersOptimizationEngine free_parameters_oracle_;
 
@@ -55,4 +56,4 @@ class MOrd : public MOrdRegularized<Loss> {
 
 #include "mord.hpp"
 
-#endif /* mord_h */
+#endif /* mord_hpp */
