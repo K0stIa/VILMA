@@ -154,8 +154,8 @@ void BuildTable2(const string dataset, const string classifier_id) {
 
   std::cout << "Oracle: " << MAE_3300_SingleGenderNoBetaBmrmOracle << std::endl;
 
-  std::unique_ptr<VilmaEvaluators::OrdModelEvaluator<Loss>> model_evaluator(
-      new VilmaEvaluators::OrdModelEvaluator<Loss>);
+  std::unique_ptr<VilmaEvaluators::MOrdModelEvaluator<Loss>> model_evaluator(
+      new VilmaEvaluators::MOrdModelEvaluator<Loss>);
 
   for (int age : age_set) {
     auto res = ExtractResults(model_evaluator.get(), dataset,
@@ -230,8 +230,8 @@ void BuildBaselineTable(const string dataset, const string classifier_id) {
   std::cout << "Oracle: " << MAE_supervised_SingleGenderNoBetaBmrmOracle
             << std::endl;
 
-  std::unique_ptr<VilmaEvaluators::OrdModelEvaluator<Loss>> model_evaluator(
-      new VilmaEvaluators::OrdModelEvaluator<Loss>);
+  std::unique_ptr<VilmaEvaluators::MOrdModelEvaluator<Loss>> model_evaluator(
+      new VilmaEvaluators::MOrdModelEvaluator<Loss>);
 
   for (int age : {5}) {
     auto res =
@@ -265,15 +265,15 @@ int main(int argc, const char *argv[]) {
   }
 
   const string classifier_id = argv[2];
-  if (classifier_id != "Vilma" && classifier_id != "SvorImc") {
+  if (classifier_id != "Vilma" && classifier_id != "SvorImc" && classifier_id != "PwMOrd" && classifier_id != "PwMOrdReg" && classifier_id != "SvorImcReg" && classifier_id != "MOrdReg") {
     cout << "Error! Bad dataset name! Must be either morph or lpip.";
     return 0;
   }
 
 #endif
 
-  BuildTable2<Vilma::MAELoss>(dataset, classifier_id);
-  // BuildBaselineTable<Vilma::MAELoss>(dataset, classifier_id);
+  //BuildTable2<Vilma::MAELoss>(dataset, classifier_id);
+  BuildBaselineTable<Vilma::MAELoss>(dataset, classifier_id);
 
   return 0;
 }

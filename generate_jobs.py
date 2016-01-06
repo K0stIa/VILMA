@@ -18,13 +18,15 @@ def makedir_p(dirname):
 
 def isCaculated(folder_path, data_name, oracle_name, supervised_num, year_range, fraction, perm_id, lmbda):
     if supervised_num == fraction:
-        output_path = FOLDER_PATH + ("/%s/%s-baseline/year-%d/fraction-%d/" % (data_name, oracle_id,
+        output_path = FOLDER_PATH + ("/%s/%s-baseline/year-%d/fraction-%d/" % (data_name, oracle_name,
                                                                      year_range, fraction))
     else:
-        output_path = FOLDER_PATH + ("/%s/%s-%d/year-%d/fraction-%d/" % (data_name, oracle_id,
+        output_path = FOLDER_PATH + ("/%s/%s-%d/year-%d/fraction-%d/" % (data_name, oracle_name,
                                                                      supervised_num, year_range, fraction))
 
     file_path = output_path + ("%d-%.4f.bin" % (perm_id, lmbda))
+    if os.path.exists(file_path):
+	print "EXISTS"
     return os.path.exists(file_path)
 
 def print_sh_job_file(data_name, oracle_id, supervised_num, lmbda, permid, year_range, fraction):
@@ -36,7 +38,7 @@ def print_sh_job_file(data_name, oracle_id, supervised_num, lmbda, permid, year_
     else:
         output_path = FOLDER_PATH + ("/%s/%s-%d/year-%d/fraction-%d/" % (data_name, oracle_id,
                                                                      supervised_num, year_range, fraction))
-
+    print output_path
     makedir_p(output_path)
 
     output_filename = output_path + ("%d-%.4f" % (permid, lmbda))
@@ -64,15 +66,15 @@ if __name__ == "__main__":
                       "SingleGenderNoBetaBmrmOracle"]
 
     Loss = "MAELoss"
-    data_name = LPIP
-    for supervised_num in [3300, 6600]:
-        for fraction in [3300, 6600, 11000, 16000, 21000]:
-        #for fraction in [3300, 6600, 10000, 13000, 23000, 33000]:
+    data_name = MORPH
+    for supervised_num in [3300]:
+        # for fraction in [3300, 6600, 11000, 16000, 21000]:
+        for fraction in [3300, 6600, 13000, 23000, 33000]:
             if fraction < supervised_num:
                 continue
-            for oracle_id in ["SvorImc"]:
-                for year_range in [5, 10, 20]:
-                    for lmbda in [0.1, 0.01]:
+            for oracle_id in ["Vilma", "VilmaZO"]:
+                for year_range in [5]:
+                    for lmbda in [0.1]:
                         for permid in [1, 2, 3]:
                             print_sh_job_file(data_name, oracle_id + "-" + Loss, fraction,
                                                       lmbda, permid, year_range, fraction)
