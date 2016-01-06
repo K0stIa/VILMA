@@ -188,6 +188,10 @@ int main(int argc, const char *argv[]) {
         case 4:
           cut_labels = {0, 14, 26, 38, 54};
           break;
+          
+        case 5:
+          cut_labels = {0, 11, 22, 33, 44, 54};
+          break;
 
         default:
           std::cout << "n_pieces: " << n_pieces << " is not defined!"
@@ -202,6 +206,10 @@ int main(int argc, const char *argv[]) {
 
         case 4:
           cut_labels = {0, 20, 40, 60, 79};
+          break;
+          
+        case 5:
+          cut_labels = {0, 16, 32, 48, 64, 79};
           break;
 
         default:
