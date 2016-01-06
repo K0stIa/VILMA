@@ -223,6 +223,11 @@ int main(int argc, const char *argv[]) {
         new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
     oracle_builder.reset(new OracleBuilder<VilmaOracle::VILma<Vilma::MAELoss>>);
 
+   } else if (oracle_name == "VilmaZO") {
+        model_evaluator.reset(
+                               +        new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
+        oracle_builder.reset(new OracleBuilder<VilmaOracle::VILma<Vilma::ZOLoss>>);
+  
   } else if (oracle_name == "VilmaReg") {
     model_evaluator.reset(
         new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
