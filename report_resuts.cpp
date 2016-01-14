@@ -235,8 +235,60 @@ void BuildBaselineTable(const string dataset, const string classifier_id) {
   std::cout << "Oracle: " << MAE_supervised_SingleGenderNoBetaBmrmOracle
             << std::endl;
 
+  std::vector<int> cut_labels;
+  const string classifier_name =
+      classifier_id.substr(0, classifier_id.find('-'));
+
+  if (classifier_name == "PwVilmaReg" || classifier_name == "PwMOrdReg") {
+    const int n_pieces =
+        stoi(classifier_id.substr(classifier_id.find('-') + 1));
+
+    if (dataset == "morph") {
+      switch (n_pieces) {
+        case 3:
+          cut_labels = {0, 20, 40, 54};
+          break;
+
+        case 4:
+          cut_labels = {0, 14, 26, 38, 54};
+          break;
+
+        case 5:
+          cut_labels = {0, 11, 22, 33, 44, 54};
+          break;
+
+        default:
+          std::cout << "n_pieces: " << n_pieces << " is not defined!"
+                    << std::endl;
+          throw int();
+      }
+    } else if (dataset == "lpip") {
+      switch (n_pieces) {
+        case 3:
+          cut_labels = {0, 25, 54, 79};
+          break;
+
+        case 4:
+          cut_labels = {0, 20, 40, 60, 79};
+          break;
+
+        case 5:
+          cut_labels = {0, 16, 32, 48, 64, 79};
+          break;
+
+        default:
+          std::cout << "n_pieces: " << n_pieces << " is not defined!"
+                    << std::endl;
+          throw int();
+      }
+    } else {
+      std::cerr << "no " << dataset << " database!\n";
+      throw int();
+    }
+  }
+
   std::unique_ptr<VilmaEvaluators::PwMOrdModelEvaluator<Loss>> model_evaluator(
-      new VilmaEvaluators::PwMOrdModelEvaluator<Loss>);
+      new VilmaEvaluators::PwMOrdModelEvaluator<Loss>(cut_labels));
 
   for (int age : {5}) {
     auto res =
