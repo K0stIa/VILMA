@@ -8,17 +8,17 @@
  * Copyright (C) 2015 Kostiantyn Antoniuk
  */
 
-#include "dense_vector.h"
 #include "data.h"
+#include "dense_vector.h"
 #include "loss.h"
 
 #include <stdio.h>
-#include <vector>
-#include <string>
+#include <chrono>
 #include <fstream>
 #include <iostream>
-#include <chrono>
 #include <map>
+#include <string>
+#include <vector>
 
 #include "evaluators.hpp"
 
@@ -37,7 +37,7 @@ static const string kExperimentDir =
     "/mnt/datagrid/personal/antonkos/experiments/jml/";
 #endif
 
-pair<vector<double>, vector<double>> ExtractResults(
+tuple<vector<double>, vector<double>, vector<double>> ExtractResults(
     VilmaEvaluators::ModelEvaluator *model_evaluator, const string kDataset,
     const string kOracleName, const int kAge, const int supervised) {
   const string LPIP = "lpip";
@@ -57,12 +57,14 @@ pair<vector<double>, vector<double>> ExtractResults(
   const vector<int> fractions = split.at(kDataset);
   vector<double> fraction_errors;
   vector<double> fraction_stds;
+  vector<double> fraction_val_errors;
 
   char buff[256];
 
   for (int fraction : fractions) {
     double fraction_error = 0;
     double fraction_second_moment = 0;
+    double fraction_val_error = 0;
     for (int perm_id = 1; perm_id <= 3; ++perm_id) {
       double best_val_error = 1e60;
       double best_tst_error = 1e60;
@@ -133,13 +135,15 @@ pair<vector<double>, vector<double>> ExtractResults(
       }  // end lambda loop
       fraction_error += best_tst_error;
       fraction_second_moment += best_tst_error * best_tst_error;
+      fraction_val_error += best_val_error;
     }  // end perms
     fraction_errors.push_back(fraction_error / 3);
     fraction_stds.push_back(
         sqrt(fraction_second_moment / 3 - fraction_error * fraction_error / 9));
+    fraction_val_errors.push_back(fraction_val_error / 3);
   }
 
-  return std::make_pair(fraction_errors, fraction_stds);
+  return std::make_tuple(fraction_errors, fraction_stds, fraction_val_errors);
 }
 
 template <class Loss>
@@ -160,8 +164,8 @@ void BuildTable2(const string dataset, const string classifier_id) {
   for (int age : age_set) {
     auto res = ExtractResults(model_evaluator.get(), dataset,
                               MAE_3300_SingleGenderNoBetaBmrmOracle, age, 3300);
-    errors_mae_3300.push_back(res.first);
-    stds_mae_3300.push_back(res.second);
+    errors_mae_3300.push_back(get<0>(res));
+    stds_mae_3300.push_back(get<1>(res));
   }
   // supervised 6600
   vector<vector<double>> errors_mae_6600, stds_mae_6600;
@@ -171,8 +175,8 @@ void BuildTable2(const string dataset, const string classifier_id) {
   for (int age : age_set) {
     auto res = ExtractResults(model_evaluator.get(), dataset,
                               MAE_6600_SingleGenderNoBetaBmrmOracle, age, 6600);
-    errors_mae_6600.push_back(res.first);
-    stds_mae_6600.push_back(res.second);
+    errors_mae_6600.push_back(get<0>(res));
+    stds_mae_6600.push_back(get<1>(res));
   }
 
   // supervised baseline
@@ -185,8 +189,8 @@ void BuildTable2(const string dataset, const string classifier_id) {
     auto res =
         ExtractResults(model_evaluator.get(), dataset,
                        MAE_supervised_SingleGenderNoBetaBmrmOracle, age, 3300);
-    errors_mae_baseline.push_back(res.first);
-    stds_mae_baseline.push_back(res.second);
+    errors_mae_baseline.push_back(get<0>(res));
+    stds_mae_baseline.push_back(get<1>(res));
   }
 
   std::cout << "Results: " << std::endl;
@@ -226,7 +230,8 @@ void BuildBaselineTable(const string dataset, const string classifier_id) {
   // supervised baseline
   const string MAE_supervised_SingleGenderNoBetaBmrmOracle =
       classifier_id + "-" + Loss::name() + "-baseline";
-  vector<vector<double>> errors_mae_baseline, stds_mae_baseline;
+  vector<vector<double>> errors_mae_baseline, stds_mae_baseline,
+      val_errors_mae_baseline;
   std::cout << "Oracle: " << MAE_supervised_SingleGenderNoBetaBmrmOracle
             << std::endl;
 
@@ -237,8 +242,9 @@ void BuildBaselineTable(const string dataset, const string classifier_id) {
     auto res =
         ExtractResults(model_evaluator.get(), dataset,
                        MAE_supervised_SingleGenderNoBetaBmrmOracle, age, 3300);
-    errors_mae_baseline.push_back(res.first);
-    stds_mae_baseline.push_back(res.second);
+    errors_mae_baseline.push_back(get<0>(res));
+    stds_mae_baseline.push_back(get<1>(res));
+    val_errors_mae_baseline.push_back(get<2>(res));
   }
 
   std::cout << "Results: " << std::endl;
@@ -248,6 +254,14 @@ void BuildBaselineTable(const string dataset, const string classifier_id) {
     const auto &stds = stds_mae_baseline[k];
     for (size_t i = 0; i < errors.size(); ++i) {
       std::cout << errors.at(i) << " +- " << stds.at(i) << " ";
+    }
+    std::cout << std::endl;
+  }
+  std::cout << "Val results: " << std::endl;
+  for (int k = 0; k < val_errors_mae_baseline.size(); ++k) {
+    const auto &errors = val_errors_mae_baseline[k];
+    for (size_t i = 0; i < errors.size(); ++i) {
+      std::cout << errors.at(i) << " ";
     }
     std::cout << std::endl;
   }
@@ -265,14 +279,20 @@ int main(int argc, const char *argv[]) {
   }
 
   const string classifier_id = argv[2];
-  if (classifier_id != "Vilma" && classifier_id != "SvorImc" && classifier_id != "PwMOrd" && classifier_id != "PwMOrdReg" && classifier_id != "SvorImcReg" && classifier_id != "MOrdReg") {
+  const string classifier_name =
+      classifier_id.substr(0, classifier_id.find('-'));
+
+  if (classifier_id != "Vilma" && classifier_id != "SvorImc" &&
+      classifier_id != "PwMOrd" && classifier_name != "PwMOrdReg" &&
+      classifier_name != "PwVilmaReg" && classifier_id != "SvorImcReg" &&
+      classifier_id != "MOrdReg") {
     cout << "Error! Bad dataset name! Must be either morph or lpip.";
     return 0;
   }
 
 #endif
 
-  //BuildTable2<Vilma::MAELoss>(dataset, classifier_id);
+  // BuildTable2<Vilma::MAELoss>(dataset, classifier_id);
   BuildBaselineTable<Vilma::MAELoss>(dataset, classifier_id);
 
   return 0;
