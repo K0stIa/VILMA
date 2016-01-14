@@ -235,8 +235,8 @@ void BuildBaselineTable(const string dataset, const string classifier_id) {
   std::cout << "Oracle: " << MAE_supervised_SingleGenderNoBetaBmrmOracle
             << std::endl;
 
-  std::unique_ptr<VilmaEvaluators::MOrdModelEvaluator<Loss>> model_evaluator(
-      new VilmaEvaluators::MOrdModelEvaluator<Loss>);
+  std::unique_ptr<VilmaEvaluators::PwMOrdModelEvaluator<Loss>> model_evaluator(
+      new VilmaEvaluators::PwMOrdModelEvaluator<Loss>);
 
   for (int age : {5}) {
     auto res =
