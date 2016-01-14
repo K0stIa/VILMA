@@ -86,6 +86,8 @@ tuple<vector<double>, vector<double>, vector<double>> ExtractResults(
         LoadData(trn_filepath, &data, fraction, supervised);
         std::cout << "Data loaded\n";
 
+        const int kNy = data.ny;
+
         std::ifstream file(result_filename + ".bin",
                            std::ios::in | std::ios::binary);
         if (!file) {
@@ -111,6 +113,7 @@ tuple<vector<double>, vector<double>, vector<double>> ExtractResults(
 
         LoadData(val_filepath, &val_data, int(1e9), int(1e9));
         std::cout << "Validation data loaded\n";
+        val_data.ny = kNy;
 
         // compute validation error
         double val_error =
@@ -122,6 +125,7 @@ tuple<vector<double>, vector<double>, vector<double>> ExtractResults(
 
         LoadData(tst_filepath, &tst_data, int(1e9), int(1e9));
         std::cout << "Validation data loaded\n";
+        tst_data.ny = kNy;
 
         // compute validation error
         double tst_error =
