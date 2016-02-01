@@ -10,11 +10,12 @@
  * Copyright (C) 2015 Kostiantyn Antoniuk
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <memory.h>
-#include <time.h> /* time_t, struct tm, difftime, time, mktime */
 #include <assert.h>
+#include <memory.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h> /* time_t, struct tm, difftime, time, mktime */
+#include <cstring>
 
 #include "bmrm_solver.h"
 #include "libqp.h"
@@ -53,18 +54,10 @@ void BMRM_Solver::set_Tmax(int tmax) { T_max = tmax; }
 void BMRM_Solver::set_cp_models(int _cp_models) { cp_models = _cp_models; }
 void BMRM_Solver::set_verbose(bool _verbose) { verbose = _verbose; }
 
-std::vector<double> BMRM_Solver::learn(int algorithm) {
+std::vector<double> BMRM_Solver::learn() {
   std::vector<double> w(dim, 0);
-
-  if (algorithm == BMRM_Solver::BMRM_USUAL) {
-    report = svm_bmrm_solver(&w[0], _TolRel, _TolAbs, _lambda, _BufSize,
-                             cleanICP, cleanAfter, K, T_max, verbose);
-  } else if (algorithm == BMRM_Solver::BMRM_PROXIMAL) {
-    report = svm_ppbm_solver(&w[0], _TolRel, _TolAbs, _lambda, _BufSize,
-                             cleanICP, cleanAfter, K, T_max, verbose);
-  } else {
-    printf("no algorithm %d\n", algorithm);
-  }
+  report = svm_bmrm_solver(&w[0], _TolRel, _TolAbs, _lambda, _BufSize, cleanICP,
+                           cleanAfter, K, T_max, verbose);
 
   return w;
 }
@@ -88,6 +81,31 @@ struct bmrm_ll {
   int idx;
 };
 
+class SparseMatrix {
+ public:
+  SparseMatrix(const int buffsize, const size_t dim)
+      : kDim(dim), rows(buffsize, NULL) {}
+
+  double *GetRow(int idx) {
+    if (rows[idx] == NULL) {
+      rows[idx] = new double[kDim];
+    }
+    return rows[idx];
+  }
+
+  ~SparseMatrix() {
+    for (double *ptr : rows) {
+      if (ptr != NULL) {
+        delete[] ptr;
+      }
+    }
+  }
+
+ private:
+  const size_t kDim;
+  std::vector<double *> rows;
+};
+
 /** Add cutting plane
  *
  * @param tail 		Pointer to the last CP entry
@@ -99,11 +117,15 @@ struct bmrm_ll {
  * @param dim		Dimension of CP data
  */
 
-void add_cutting_plane(bmrm_ll **tail, bool *map, double *A, int free_idx,
+void add_cutting_plane(bmrm_ll **tail, bool *map, SparseMatrix &A, int free_idx,
                        double *cp_data, int dim) {
+  if (free_idx == -1) {
+    printf("Can not add new cutting plane\n");
+    assert(free_idx != -1);
+  }
   assert(map[free_idx]);
 
-  LIBBMRM_MEMCPY(A + free_idx * dim, cp_data, dim * sizeof(double));
+  LIBBMRM_MEMCPY(A.GetRow(free_idx), cp_data, dim * sizeof(double));
   map[free_idx] = false;
 
   bmrm_ll *cp = (bmrm_ll *)LIBBMRM_CALLOC(1, sizeof(bmrm_ll));
@@ -113,7 +135,7 @@ void add_cutting_plane(bmrm_ll **tail, bool *map, double *A, int free_idx,
     return;
   }
 
-  cp->address = A + (free_idx * dim);
+  cp->address = A.GetRow(free_idx);
   cp->prev = *tail;
   cp->next = NULL;
   cp->idx = free_idx;
@@ -168,7 +190,7 @@ inline double *get_cutting_plane(bmrm_ll *ptr) { return ptr->address; }
 inline int find_free_idx(bool *map, int size) {
   for (int i = 0; i < size; ++i)
     if (map[i]) return i;
-  return size + 1;
+  return -1;
 }
 
 static const int QPSolverMaxIter = 10000000;
@@ -190,12 +212,13 @@ bmrm_return_value_T BMRM_Solver::svm_bmrm_solver(double *W, double TolRel,
   bmrm_return_value_T bmrm;
   libqp_state_T qp_exitflag = {0, 0, 0, 0};
   double *b, *beta, *diag_H, *prevW;
-  double R, *subgrad, *A, QPSolverTolRel, C = 1.0, wdist = 0.0;
+  double R, *subgrad, QPSolverTolRel, C = 1.0, wdist = 0.0;
   double rsum, sq_norm_W, sq_norm_Wdiff = 0.0;
   int *I, *ICPcounter, *ACPs, cntICP = 0, cntACP = 0;
   int S = 1;
   int nDim = (int)this->dim;
   double **ICPs;
+  SparseMatrix A(_BufSize, this->dim);
 
   // CTime ttime;
   // double tstart, tstop;
@@ -216,7 +239,6 @@ bmrm_return_value_T BMRM_Solver::svm_bmrm_solver(double *W, double TolRel,
   H = NULL;
   b = NULL;
   beta = NULL;
-  A = NULL;
   subgrad = NULL;
   diag_H = NULL;
   I = NULL;
@@ -233,12 +255,7 @@ bmrm_return_value_T BMRM_Solver::svm_bmrm_solver(double *W, double TolRel,
     goto cleanup;
   }
 
-  A = (double *)LIBBMRM_CALLOC((size_t)nDim * BufSize, sizeof(double));
-
-  if (A == NULL) {
-    bmrm.exitflag = -2;
-    goto cleanup;
-  }
+  // A = (double *)LIBBMRM_CALLOC((size_t)nDim * BufSize, sizeof(double));
 
   b = (double *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(double));
 
@@ -342,9 +359,9 @@ bmrm_return_value_T BMRM_Solver::svm_bmrm_solver(double *W, double TolRel,
 
   /* Cutting plane auxiliary double linked list */
 
-  LIBBMRM_MEMCPY(A, subgrad, nDim * sizeof(double));
+  LIBBMRM_MEMCPY(A.GetRow(0), subgrad, nDim * sizeof(double));
   map[0] = false;
-  cp_list->address = &A[0];
+  cp_list->address = A.GetRow(0);
   cp_list->idx = 0;
   cp_list->prev = NULL;
   cp_list->next = NULL;
@@ -594,7 +611,7 @@ cleanup:
   LIBBMRM_FREE(H);
   LIBBMRM_FREE(b);
   LIBBMRM_FREE(beta);
-  LIBBMRM_FREE(A);
+  //  LIBBMRM_FREE(A);
   LIBBMRM_FREE(subgrad);
   LIBBMRM_FREE(diag_H);
   LIBBMRM_FREE(I);
@@ -608,651 +625,4 @@ cleanup:
   if (cp_list) LIBBMRM_FREE(cp_list);
 
   return (bmrm);
-}
-
-// proximal BMRM
-
-static double *H2;
-
-static const double *get_col_2(int i) { return (&H2[BufSize * i]); }
-
-bmrm_return_value_T BMRM_Solver::svm_ppbm_solver(double *W, double TolRel,
-                                                 double TolAbs, double _lambda,
-                                                 int _BufSize, bool cleanICP,
-                                                 int cleanAfter, double K,
-                                                 int Tmax, bool verbose) {
-  bmrm_return_value_T ppbmrm;
-  libqp_state_T qp_exitflag = {0, 0, 0, 0}, qp_exitflag_good = {0, 0, 0, 0};
-  double *b, *b2, *beta, *beta_good, *beta_start, *diag_H, *diag_H2;
-  double R, *subgrad, *A, QPSolverTolRel, C = 1.0;
-  double *prevW, *wt, alpha, alpha_start, alpha_good = 0.0, Fd_alpha0 = 0.0;
-  double lastFp, wdist, gamma = 0.0;
-  double rsum, sq_norm_W, sq_norm_Wdiff, sq_norm_prevW, eps;
-  int *I, *I2, *I_start, *I_good, *ICPcounter, *ACPs, cntICP = 0, cntACP = 0;
-  int S = 1;
-  int nDim = (int)this->dim;
-  double **ICPs;
-  int nCP_new = 0, qp_cnt = 0;
-  bmrm_ll *CPList_head, *CPList_tail, *cp_ptr, *cp_ptr2, *cp_list = NULL;
-  double *A_1 = NULL, *A_2 = NULL, *H_buff;
-  bool *map = NULL, tuneAlpha = true, flag = true, alphaChanged = false,
-       isThereGoodSolution = false;
-
-  time_t tstart, tstop;
-
-  time(&tstart);
-
-  BufSize = _BufSize;
-  QPSolverTolRel = 1e-9;
-
-  H = NULL;
-  b = NULL;
-  beta = NULL;
-  A = NULL;
-  subgrad = NULL;
-  diag_H = NULL;
-  I = NULL;
-  ICPcounter = NULL;
-  ICPs = NULL;
-  ACPs = NULL;
-  prevW = NULL;
-  wt = NULL;
-  H_buff = NULL;
-  diag_H2 = NULL;
-  b2 = NULL;
-  I2 = NULL;
-  H2 = NULL;
-  I_good = NULL;
-  I_start = NULL;
-  beta_start = NULL;
-  beta_good = NULL;
-
-  alpha = 0.0;
-
-  H = (double *)LIBBMRM_CALLOC((size_t)BufSize * BufSize, sizeof(double));
-
-  A = (double *)LIBBMRM_CALLOC((size_t)nDim * BufSize, sizeof(double));
-
-  b = (double *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(double));
-
-  beta = (double *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(double));
-
-  subgrad = (double *)LIBBMRM_CALLOC((size_t)nDim, sizeof(double));
-
-  diag_H = (double *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(double));
-
-  I = (int *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(int));
-
-  ICPcounter = (int *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(int));
-
-  ICPs = (double **)LIBBMRM_CALLOC((size_t)BufSize, sizeof(double *));
-
-  ACPs = (int *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(int));
-  cp_list = (bmrm_ll *)LIBBMRM_CALLOC((size_t)1, sizeof(bmrm_ll));
-
-  prevW = (double *)LIBBMRM_CALLOC((size_t)nDim, sizeof(double));
-
-  wt = (double *)LIBBMRM_CALLOC((size_t)nDim, sizeof(double));
-
-  if (H == NULL || A == NULL || b == NULL || beta == NULL || subgrad == NULL ||
-      diag_H == NULL || I == NULL || ICPcounter == NULL || ICPs == NULL ||
-      ACPs == NULL || cp_list == NULL || prevW == NULL || wt == NULL) {
-    ppbmrm.exitflag = -2;
-    goto cleanup;
-  }
-
-  map = (bool *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(bool));
-
-  if (map == NULL) {
-    ppbmrm.exitflag = -2;
-    goto cleanup;
-  }
-
-  memset((bool *)map, true, BufSize);
-
-  /* Temporary buffers for ICP removal */
-  H_buff = (double *)LIBBMRM_CALLOC((size_t)BufSize * BufSize, sizeof(double));
-
-  if (H_buff == NULL) {
-    ppbmrm.exitflag = -2;
-    goto cleanup;
-  }
-
-  /* Temporary buffers */
-  beta_start = (double *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(double));
-
-  beta_good = (double *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(double));
-
-  b2 = (double *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(double));
-
-  diag_H2 = (double *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(double));
-
-  H2 = (double *)LIBBMRM_CALLOC((size_t)BufSize * BufSize, sizeof(double));
-
-  I_start = (int *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(int));
-
-  I_good = (int *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(int));
-
-  I2 = (int *)LIBBMRM_CALLOC((size_t)BufSize, sizeof(int));
-
-  if (beta_start == NULL || beta_good == NULL || b2 == NULL ||
-      diag_H2 == NULL || I_start == NULL || I_good == NULL || I2 == NULL ||
-      H2 == NULL) {
-    ppbmrm.exitflag = -2;
-    goto cleanup;
-  }
-
-  ppbmrm.hist_Fp.resize(BufSize);
-  ppbmrm.hist_Fd.resize(BufSize);
-  ppbmrm.hist_wdist.resize(BufSize);
-
-  /* Iinitial solution */
-  R = (double)this->risk(W, subgrad);
-
-  ppbmrm.nCP = 0;
-  ppbmrm.nIter = 0;
-  ppbmrm.exitflag = 0;
-
-  b[0] = -R;
-
-  /* Cutting plane auxiliary double linked list */
-  LIBBMRM_MEMCPY(A, subgrad, (size_t)nDim * sizeof(double));
-  map[0] = false;
-  cp_list->address = &A[0];
-  cp_list->idx = 0;
-  cp_list->prev = NULL;
-  cp_list->next = NULL;
-  CPList_head = cp_list;
-  CPList_tail = cp_list;
-
-  /* Compute initial value of Fp, Fd, assuming that W is zero vector */
-  sq_norm_W = 0.0;
-  sq_norm_Wdiff = 0.0;
-
-  for (int j = 0; j < nDim; ++j) {
-    b[0] += subgrad[j] * W[j];
-    sq_norm_W += W[j] * W[j];
-    sq_norm_Wdiff += (W[j] - prevW[j]) * (W[j] - prevW[j]);
-  }
-
-  ppbmrm.Fp = R + 0.5 * _lambda * sq_norm_W + alpha * sq_norm_Wdiff;
-  ppbmrm.Fd = -LIBBMRM_PLUS_INF;
-  lastFp = ppbmrm.Fp;
-  wdist = ::sqrt(sq_norm_Wdiff);
-
-  // K = (sq_norm_W == 0.0) ? 0.4 : 0.01*::sqrt(sq_norm_W);
-
-  LIBBMRM_MEMCPY(prevW, W, (size_t)nDim * sizeof(double));
-
-  time(&tstop);
-
-  /* Keep history of Fp, Fd, wdist */
-  ppbmrm.hist_Fp[0] = ppbmrm.Fp;
-  ppbmrm.hist_Fd[0] = ppbmrm.Fd;
-  ppbmrm.hist_wdist[0] = wdist;
-
-  /* Verbose output */
-  if (verbose)
-    printf("%4d: tim=%.3f, Fp=%f, Fd=%f, R=%f, K=%f\n", ppbmrm.nIter,
-           difftime(tstop, tstart), ppbmrm.Fp, ppbmrm.Fd, R, K);
-
-  /* main loop */
-
-  while (ppbmrm.exitflag == 0) {
-    time(&tstart);
-    ppbmrm.nIter++;
-
-    /* Update H */
-
-    if (ppbmrm.nCP > 0) {
-      A_2 = get_cutting_plane(CPList_tail);
-      cp_ptr = CPList_head;
-
-      for (int i = 0; i < ppbmrm.nCP; ++i) {
-        A_1 = get_cutting_plane(cp_ptr);
-        cp_ptr = cp_ptr->next;
-        rsum = 0.0;
-
-        for (int j = 0; j < nDim; ++j) {
-          rsum += A_1[j] * A_2[j];
-        }
-
-        H[LIBBMRM_INDEX(i, ppbmrm.nCP, BufSize)] = rsum;
-      }
-
-      for (int i = 0; i < ppbmrm.nCP; ++i) {
-        H[LIBBMRM_INDEX(ppbmrm.nCP, i, BufSize)] =
-            H[LIBBMRM_INDEX(i, ppbmrm.nCP, BufSize)];
-      }
-    }
-
-    rsum = 0.0;
-    A_2 = get_cutting_plane(CPList_tail);
-
-    for (int i = 0; i < nDim; ++i) rsum += A_2[i] * A_2[i];
-
-    H[LIBBMRM_INDEX(ppbmrm.nCP, ppbmrm.nCP, BufSize)] = rsum;
-
-    diag_H[ppbmrm.nCP] = H[LIBBMRM_INDEX(ppbmrm.nCP, ppbmrm.nCP, BufSize)];
-    I[ppbmrm.nCP] = 1;
-
-    ppbmrm.nCP++;
-    beta[ppbmrm.nCP] = 0.0;  // [beta; 0]
-
-    /* tune alpha cycle */
-    /* ---------------------------------------------------------------------- */
-
-    flag = true;
-    isThereGoodSolution = false;
-    LIBBMRM_MEMCPY(beta_start, beta, (size_t)ppbmrm.nCP * sizeof(double));
-    LIBBMRM_MEMCPY(I_start, I, (size_t)ppbmrm.nCP * sizeof(int));
-    qp_cnt = 0;
-    alpha_good = alpha;
-
-    if (tuneAlpha) {
-      alpha_start = alpha;
-      alpha = 0.0;
-      beta[ppbmrm.nCP] = 0.0;
-      LIBBMRM_MEMCPY(I2, I_start, (size_t)ppbmrm.nCP * sizeof(int));
-      I2[ppbmrm.nCP] = 1;
-
-      /* add alpha-dependent terms to H, diag_h and b */
-      cp_ptr = CPList_head;
-
-      for (int i = 0; i < ppbmrm.nCP; ++i) {
-        rsum = 0.0;
-        A_1 = get_cutting_plane(cp_ptr);
-        cp_ptr = cp_ptr->next;
-
-        for (int j = 0; j < nDim; ++j) rsum += A_1[j] * prevW[j];
-
-        b2[i] = b[i] - ((2 * alpha) / (_lambda + 2 * alpha)) * rsum;
-        diag_H2[i] = diag_H[i] / (_lambda + 2 * alpha);
-
-        for (int j = 0; j < ppbmrm.nCP; ++j)
-          H2[LIBBMRM_INDEX(i, j, BufSize)] =
-              H[LIBBMRM_INDEX(i, j, BufSize)] / (_lambda + 2 * alpha);
-      }
-
-      /* solve QP with current alpha */
-      qp_exitflag = libqp_splx_solver(&get_col, diag_H2, b2, &C, I2, &S, beta,
-                                      ppbmrm.nCP, QPSolverMaxIter, 0.0,
-                                      QPSolverTolRel, -LIBBMRM_PLUS_INF, 0);
-      ppbmrm.qp_exitflag = qp_exitflag.exitflag;
-      qp_cnt++;
-      Fd_alpha0 = -qp_exitflag.QP;
-
-      /* obtain w_t and check if norm(w_{t+1} -w_t) <= K */
-      for (int i = 0; i < nDim; ++i) {
-        rsum = 0.0;
-        cp_ptr = CPList_head;
-
-        for (int j = 0; j < ppbmrm.nCP; ++j) {
-          A_1 = get_cutting_plane(cp_ptr);
-          cp_ptr = cp_ptr->next;
-          rsum += A_1[i] * beta[j];
-        }
-
-        wt[i] = (2 * alpha * prevW[i] - rsum) / (_lambda + 2 * alpha);
-      }
-
-      sq_norm_Wdiff = 0.0;
-
-      for (int i = 0; i < nDim; ++i)
-        sq_norm_Wdiff += (wt[i] - prevW[i]) * (wt[i] - prevW[i]);
-
-      if (::sqrt(sq_norm_Wdiff) <= K) {
-        flag = false;
-
-        if (alpha != alpha_start) alphaChanged = true;
-      } else {
-        alpha = alpha_start;
-      }
-
-      while (flag) {
-        LIBBMRM_MEMCPY(I2, I_start, (size_t)ppbmrm.nCP * sizeof(int));
-        LIBBMRM_MEMCPY(beta, beta_start, (size_t)ppbmrm.nCP * sizeof(double));
-        I2[ppbmrm.nCP] = 1;
-        beta[ppbmrm.nCP] = 0.0;
-
-        /* add alpha-dependent terms to H, diag_h and b */
-        cp_ptr = CPList_head;
-
-        for (int i = 0; i < ppbmrm.nCP; ++i) {
-          rsum = 0.0;
-          A_1 = get_cutting_plane(cp_ptr);
-          cp_ptr = cp_ptr->next;
-
-          for (int j = 0; j < nDim; ++j) rsum += A_1[j] * prevW[j];
-
-          b2[i] = b[i] - ((2 * alpha) / (_lambda + 2 * alpha)) * rsum;
-          diag_H2[i] = diag_H[i] / (_lambda + 2 * alpha);
-
-          for (int j = 0; j < ppbmrm.nCP; ++j)
-            H2[LIBBMRM_INDEX(i, j, BufSize)] =
-                H[LIBBMRM_INDEX(i, j, BufSize)] / (_lambda + 2 * alpha);
-        }
-
-        /* solve QP with current alpha */
-        qp_exitflag = libqp_splx_solver(&get_col, diag_H2, b2, &C, I2, &S, beta,
-                                        ppbmrm.nCP, QPSolverMaxIter, 0.0,
-                                        QPSolverTolRel, -LIBBMRM_PLUS_INF, 0);
-        ppbmrm.qp_exitflag = qp_exitflag.exitflag;
-        qp_cnt++;
-
-        /* obtain w_t and check if norm(w_{t+1}-w_t) <= K */
-        for (int i = 0; i < nDim; ++i) {
-          rsum = 0.0;
-          cp_ptr = CPList_head;
-
-          for (int j = 0; j < ppbmrm.nCP; ++j) {
-            A_1 = get_cutting_plane(cp_ptr);
-            cp_ptr = cp_ptr->next;
-            rsum += A_1[i] * beta[j];
-          }
-
-          wt[i] = (2 * alpha * prevW[i] - rsum) / (_lambda + 2 * alpha);
-        }
-
-        sq_norm_Wdiff = 0.0;
-        for (int i = 0; i < nDim; ++i)
-          sq_norm_Wdiff += (wt[i] - prevW[i]) * (wt[i] - prevW[i]);
-
-        if (::sqrt(sq_norm_Wdiff) > K) {
-          /* if there is a record of some good solution
-           * (i.e. adjust alpha by division by 2) */
-
-          if (isThereGoodSolution) {
-            LIBBMRM_MEMCPY(beta, beta_good,
-                           (size_t)ppbmrm.nCP * sizeof(double));
-            LIBBMRM_MEMCPY(I2, I_good, (size_t)ppbmrm.nCP * sizeof(int));
-            alpha = alpha_good;
-            qp_exitflag = qp_exitflag_good;
-            flag = false;
-          } else {
-            if (alpha == 0) {
-              alpha = 1.0;
-              alphaChanged = true;
-            } else {
-              alpha *= 2;
-              alphaChanged = true;
-            }
-          }
-        } else {
-          if (alpha > 0) {
-            /* keep good solution and try for alpha /= 2 if previous alpha was 1
-             */
-            LIBBMRM_MEMCPY(beta_good, beta,
-                           (size_t)ppbmrm.nCP * sizeof(double));
-            LIBBMRM_MEMCPY(I_good, I2, (size_t)ppbmrm.nCP * sizeof(int));
-            alpha_good = alpha;
-            qp_exitflag_good = qp_exitflag;
-            isThereGoodSolution = true;
-
-            if (alpha != 1.0) {
-              alpha /= 2.0;
-              alphaChanged = true;
-            } else {
-              alpha = 0.0;
-              alphaChanged = true;
-            }
-          } else {
-            flag = false;
-          }
-        }
-      }
-    } else {
-      alphaChanged = false;
-      LIBBMRM_MEMCPY(I2, I_start, (size_t)ppbmrm.nCP * sizeof(int));
-      LIBBMRM_MEMCPY(beta, beta_start, (size_t)ppbmrm.nCP * sizeof(double));
-
-      /* add alpha-dependent terms to H, diag_h and b */
-      cp_ptr = CPList_head;
-
-      for (int i = 0; i < ppbmrm.nCP; ++i) {
-        rsum = 0.0;
-        A_1 = get_cutting_plane(cp_ptr);
-        cp_ptr = cp_ptr->next;
-
-        for (int j = 0; j < nDim; ++j) rsum += A_1[j] * prevW[j];
-
-        b2[i] = b[i] - ((2 * alpha) / (_lambda + 2 * alpha)) * rsum;
-        diag_H2[i] = diag_H[i] / (_lambda + 2 * alpha);
-
-        for (int j = 0; j < ppbmrm.nCP; ++j)
-          H2[LIBBMRM_INDEX(i, j, BufSize)] =
-              H[LIBBMRM_INDEX(i, j, BufSize)] / (_lambda + 2 * alpha);
-      }
-      /* solve QP with current alpha */
-      qp_exitflag = libqp_splx_solver(&get_col, diag_H2, b2, &C, I2, &S, beta,
-                                      ppbmrm.nCP, QPSolverMaxIter, 0.0,
-                                      QPSolverTolRel, -LIBBMRM_PLUS_INF, 0);
-      ppbmrm.qp_exitflag = qp_exitflag.exitflag;
-      qp_cnt++;
-    }
-
-    /* -----------------------------------------------------------------------------------------------
-     */
-
-    /* Update ICPcounter (add one to unused and reset used) + compute number of
-     * active CPs */
-    ppbmrm.nzA = 0;
-
-    for (int aaa = 0; aaa < ppbmrm.nCP; ++aaa) {
-      if (beta[aaa] > epsilon) {
-        ++ppbmrm.nzA;
-        ICPcounter[aaa] = 0;
-      } else {
-        ICPcounter[aaa] += 1;
-      }
-    }
-
-    /* W update */
-    for (int i = 0; i < nDim; ++i) {
-      rsum = 0.0;
-      cp_ptr = CPList_head;
-
-      for (int j = 0; j < ppbmrm.nCP; ++j) {
-        A_1 = get_cutting_plane(cp_ptr);
-        cp_ptr = cp_ptr->next;
-        rsum += A_1[i] * beta[j];
-      }
-
-      W[i] = (2 * alpha * prevW[i] - rsum) / (_lambda + 2 * alpha);
-    }
-
-    /* risk and subgradient computation */
-    R = (double)this->risk(W, subgrad);
-    b[ppbmrm.nCP] = -R;
-    add_cutting_plane(&CPList_tail, map, A, find_free_idx(map, BufSize),
-                      subgrad, nDim);
-
-    sq_norm_W = 0.0;
-    sq_norm_Wdiff = 0.0;
-    sq_norm_prevW = 0.0;
-
-    for (int j = 0; j < nDim; ++j) {
-      b[ppbmrm.nCP] += subgrad[j] * W[j];
-      sq_norm_W += W[j] * W[j];
-      sq_norm_Wdiff += (W[j] - prevW[j]) * (W[j] - prevW[j]);
-      sq_norm_prevW += prevW[j] * prevW[j];
-    }
-
-    /* compute Fp and Fd */
-    ppbmrm.Fp = R + 0.5 * _lambda * sq_norm_W + alpha * sq_norm_Wdiff;
-    ppbmrm.Fd = -qp_exitflag.QP +
-                ((alpha * _lambda) / (_lambda + 2 * alpha)) * sq_norm_prevW;
-
-    /* gamma + tuneAlpha flag */
-    if (alphaChanged) {
-      eps = 1.0 - (ppbmrm.Fd / ppbmrm.Fp);
-      gamma = (lastFp * (1 - eps) - Fd_alpha0) / (Tmax * (1 - eps));
-    }
-
-    if ((lastFp - ppbmrm.Fp) <= gamma) {
-      tuneAlpha = true;
-    } else {
-      tuneAlpha = false;
-    }
-
-    /* Stopping conditions - set only with nonzero alpha */
-    if (alpha == 0.0) {
-      if (ppbmrm.Fp - ppbmrm.Fd <= TolRel * LIBBMRM_ABS(ppbmrm.Fp))
-        ppbmrm.exitflag = 1;
-
-      if (ppbmrm.Fp - ppbmrm.Fd <= TolAbs) ppbmrm.exitflag = 2;
-    }
-
-    if (ppbmrm.nCP >= BufSize) ppbmrm.exitflag = -1;
-
-    // tstop=ttime.cur_time_diff(false);
-    time(&tstop);
-
-    /* compute wdist (= || W_{t+1} - W_{t} || ) */
-    sq_norm_Wdiff = 0.0;
-
-    for (int i = 0; i < nDim; ++i) {
-      sq_norm_Wdiff += (W[i] - prevW[i]) * (W[i] - prevW[i]);
-    }
-
-    wdist = ::sqrt(sq_norm_Wdiff);
-
-    /* Realocate if there more cutting planes then buffer*/
-    if (ppbmrm.hist_Fp.size() >= ppbmrm.nIter) {
-      ppbmrm.hist_Fp.resize(int(1.5 * ppbmrm.nIter + 1));
-      ppbmrm.hist_Fd.resize(int(1.5 * ppbmrm.nIter + 1));
-      ppbmrm.hist_wdist.resize(int(1.5 * ppbmrm.nIter + 1));
-    }
-
-    /* Keep history of Fp, Fd, wdist */
-    ppbmrm.hist_Fp[ppbmrm.nIter] = ppbmrm.Fp;
-    ppbmrm.hist_Fd[ppbmrm.nIter] = ppbmrm.Fd;
-    ppbmrm.hist_wdist[ppbmrm.nIter] = wdist;
-
-    /* Verbose output */
-    if (verbose)
-      printf(
-          "%4d: tim=%.3lf, Fp=%lf, Fd=%lf, (Fp-Fd)=%lf, (Fp-Fd)/Fp=%lf, R=%lf, "
-          "nCP=%d, nzA=%d, wdist=%lf, alpha=%lf, qp_cnt=%d, gamma=%lf, "
-          "tuneAlpha=%d\n",
-          ppbmrm.nIter, difftime(tstop, tstart), ppbmrm.Fp, ppbmrm.Fd,
-          ppbmrm.Fp - ppbmrm.Fd, (ppbmrm.Fp - ppbmrm.Fd) / ppbmrm.Fp, R,
-          ppbmrm.nCP, ppbmrm.nzA, wdist, alpha, qp_cnt, gamma, tuneAlpha);
-
-    /* Check size of Buffer */
-    if (ppbmrm.nCP >= BufSize) {
-      ppbmrm.exitflag = -2;
-      printf("Buffer exceeded.\n");
-    }
-
-    /* keep w_t + Fp */
-    LIBBMRM_MEMCPY(prevW, W, nDim * sizeof(double));
-    lastFp = ppbmrm.Fp;
-
-    /* Inactive Cutting Planes (ICP) removal */
-    if (cleanICP) {
-      /* find ICP */
-      cntICP = 0;
-      cntACP = 0;
-      cp_ptr = CPList_head;
-      int tmp_idx = 0;
-
-      while (cp_ptr != CPList_tail) {
-        if (ICPcounter[tmp_idx++] >= cleanAfter) {
-          ICPs[cntICP++] = cp_ptr->address;
-        } else {
-          ACPs[cntACP++] = tmp_idx - 1;
-        }
-
-        cp_ptr = cp_ptr->next;
-      }
-
-      /* do ICP removal */
-      if (cntICP > 0) {
-        nCP_new = ppbmrm.nCP - cntICP;
-
-        for (int i = 0; i < cntICP; ++i) {
-          tmp_idx = 0;
-          cp_ptr = CPList_head;
-
-          while (cp_ptr->address != ICPs[i]) {
-            cp_ptr = cp_ptr->next;
-            tmp_idx++;
-          }
-
-          remove_cutting_plane(&CPList_head, &CPList_tail, map, ICPs[i]);
-
-          LIBBMRM_MEMMOVE(b + tmp_idx, b + tmp_idx + 1,
-                          (ppbmrm.nCP - tmp_idx) * sizeof(double));
-          LIBBMRM_MEMMOVE(beta + tmp_idx, beta + tmp_idx + 1,
-                          (ppbmrm.nCP - tmp_idx) * sizeof(double));
-          LIBBMRM_MEMMOVE(diag_H + tmp_idx, diag_H + tmp_idx + 1,
-                          (ppbmrm.nCP - tmp_idx) * sizeof(double));
-          LIBBMRM_MEMMOVE(I + tmp_idx, I + tmp_idx + 1,
-                          (ppbmrm.nCP - tmp_idx) * sizeof(int));
-          LIBBMRM_MEMMOVE(ICPcounter + tmp_idx, ICPcounter + tmp_idx + 1,
-                          (ppbmrm.nCP - tmp_idx) * sizeof(int));
-        }
-
-        /* H */
-        for (int i = 0; i < nCP_new; ++i) {
-          for (int j = 0; j < nCP_new; ++j) {
-            H_buff[LIBBMRM_INDEX(i, j, BufSize)] =
-                H[LIBBMRM_INDEX(ACPs[i], ACPs[j], BufSize)];
-          }
-        }
-
-        for (int i = 0; i < nCP_new; ++i)
-          for (int j = 0; j < nCP_new; ++j)
-            H[LIBBMRM_INDEX(i, j, BufSize)] =
-                H_buff[LIBBMRM_INDEX(i, j, BufSize)];
-
-        ppbmrm.nCP = nCP_new;
-      }
-    }
-  } /* end of main loop */
-
-  ppbmrm.hist_Fp.resize(ppbmrm.nIter);
-  ppbmrm.hist_Fd.resize(ppbmrm.nIter);
-  ppbmrm.hist_wdist.resize(ppbmrm.nIter);
-
-  cp_ptr = CPList_head;
-
-  while (cp_ptr != NULL) {
-    cp_ptr2 = cp_ptr;
-    cp_ptr = cp_ptr->next;
-    LIBBMRM_FREE(cp_ptr2);
-    cp_ptr2 = NULL;
-  }
-
-  cp_list = NULL;
-
-cleanup:
-
-  LIBBMRM_FREE(H);
-  LIBBMRM_FREE(b);
-  LIBBMRM_FREE(beta);
-  LIBBMRM_FREE(A);
-  LIBBMRM_FREE(subgrad);
-  LIBBMRM_FREE(diag_H);
-  LIBBMRM_FREE(I);
-  LIBBMRM_FREE(ICPcounter);
-  LIBBMRM_FREE(ICPs);
-  LIBBMRM_FREE(ACPs);
-  LIBBMRM_FREE(H_buff);
-  LIBBMRM_FREE(map);
-  LIBBMRM_FREE(prevW);
-  LIBBMRM_FREE(wt);
-  LIBBMRM_FREE(beta_start);
-  LIBBMRM_FREE(beta_good);
-  LIBBMRM_FREE(I_start);
-  LIBBMRM_FREE(I_good);
-  LIBBMRM_FREE(I2);
-  LIBBMRM_FREE(b2);
-  LIBBMRM_FREE(diag_H2);
-  LIBBMRM_FREE(H2);
-
-  if (cp_list) LIBBMRM_FREE(cp_list);
-
-  return (ppbmrm);
 }
