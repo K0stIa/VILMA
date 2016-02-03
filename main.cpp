@@ -8,30 +8,30 @@
  * Copyright (C) 2015 Kostiantyn Antoniuk
  */
 
-#include <string>
+#include <chrono>
 #include <fstream>
 #include <iostream>
-#include <chrono>
-#include <vector>
 #include <memory>
+#include <string>
+#include <vector>
 
-#include "sparse_matrix.h"
-#include "dense_vector.h"
 #include "data.h"
+#include "dense_vector.h"
 #include "loss.h"
 #include "model_evaluator.h"
+#include "sparse_matrix.h"
 #include "sparse_vector.h"
 
-#include "oracle/ordinal_regression.h"
-#include "oracle/svor_imc_reg.h"
-#include "oracle/svor_imc.h"
-#include "oracle/svor_exp.h"
 #include "oracle/mord.h"
-#include "oracle/vilma_regularized.h"
-#include "oracle/vilma.h"
+#include "oracle/ordinal_regression.h"
+#include "oracle/pw_mord.h"
 #include "oracle/pw_mord_regularized.h"
 #include "oracle/pw_vilma.h"
-#include "oracle/pw_mord.h"
+#include "oracle/svor_exp.h"
+#include "oracle/svor_imc.h"
+#include "oracle/svor_imc_reg.h"
+#include "oracle/vilma.h"
+#include "oracle/vilma_regularized.h"
 
 #include "evaluators.hpp"
 
@@ -106,7 +106,8 @@ void RunExperiment(OracleBuilderInterface *oracle_builder,
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
   std::cout << "Learning took "
             << std::chrono::duration_cast<std::chrono::seconds>(end - start)
-                   .count() << "us.\n";
+                   .count()
+            << "us.\n";
 
   // save weights
   {
@@ -188,7 +189,7 @@ int main(int argc, const char *argv[]) {
         case 4:
           cut_labels = {0, 14, 26, 38, 54};
           break;
-          
+
         case 5:
           cut_labels = {0, 11, 22, 33, 44, 54};
           break;
@@ -207,7 +208,7 @@ int main(int argc, const char *argv[]) {
         case 4:
           cut_labels = {0, 20, 40, 60, 79};
           break;
-          
+
         case 5:
           cut_labels = {0, 16, 32, 48, 64, 79};
           break;
@@ -231,11 +232,11 @@ int main(int argc, const char *argv[]) {
         new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
     oracle_builder.reset(new OracleBuilder<VilmaOracle::VILma<Vilma::MAELoss>>);
 
-   } else if (oracle_name == "VilmaZO") {
-        model_evaluator.reset(
-                               +        new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
-        oracle_builder.reset(new OracleBuilder<VilmaOracle::VILma<Vilma::ZOLoss>>);
-  
+  } else if (oracle_name == "VilmaZO") {
+    model_evaluator.reset(
+        +new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
+    oracle_builder.reset(new OracleBuilder<VilmaOracle::VILma<Vilma::ZOLoss>>);
+
   } else if (oracle_name == "VilmaReg") {
     model_evaluator.reset(
         new VilmaEvaluators::MOrdModelEvaluator<Vilma::MAELoss>);
