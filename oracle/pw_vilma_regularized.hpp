@@ -25,7 +25,7 @@ VilmaOracle::PwVilmaRegularized<Loss>::PwVilmaRegularized(
       cut_labels(cut_labels),
       kPW((int)cut_labels.size()) {
   // setup BMRM dim
-  dim = GetOracleParamsDim();
+  dim = this->GetOracleParamsDim();
 
   wx_buffer_.reset(new double[data_->GetDataNumExamples() * kPW]);
   alpha_buffer_.reset(BuildAlphas(cut_labels, data_->GetDataNumClasses()));

@@ -20,7 +20,9 @@ VilmaOracle::PwVilma<Loss>::PwVilma(Data *data,
               this, wx_buffer_.get(), data->GetDataNumClasses(),
               (int)cut_labels.size()),
           new VilmaAccpmOracle::VilmaAccpmParametersBuilder(
-              data->GetDataNumClasses())) {}
+              data->GetDataNumClasses())) {
+  OrdinalRegression::dim = this->GetOracleParamsDim();
+}
 
 template <class Loss>
 int VilmaOracle::PwVilma<Loss>::GetFreeParamsDim() {

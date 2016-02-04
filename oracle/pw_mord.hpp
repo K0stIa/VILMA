@@ -20,7 +20,9 @@ VilmaOracle::PwMOrd<Loss>::PwMOrd(Data *data,
               this, wx_buffer_.get(), data->GetDataNumClasses(),
               (int)cut_labels.size()),
           new VilmaAccpmOracle::VilmaAccpmParametersBuilder(
-              data->GetDataNumClasses())) {}
+              data->GetDataNumClasses())) {
+  OrdinalRegression::dim = this->GetOracleParamsDim();
+}
 
 template <class Loss>
 int VilmaOracle::PwMOrd<Loss>::GetFreeParamsDim() {
@@ -37,6 +39,13 @@ double VilmaOracle::PwMOrd<Loss>::risk(const double *weights, double *subgrad) {
   ProjectData(w, data_, wx_buffer_.get(), kPW);
 
   std::vector<double> opt_beta = free_parameters_oracle_.Optimize();
+  //  const int ny = beta_.dim_;
+  //  const int kk = this->GetOracleParamsDim();
+  //  const int tt = data_->GetDataDim();
+  //
+  //  std::vector<double> opt_beta(weights + this->GetOracleParamsDim(),
+  //                               weights + this->GetOracleParamsDim() + ny);
+
   for (int i = 0; i < (int)opt_beta.size(); ++i) {
     beta_[i] = opt_beta[i];
   }

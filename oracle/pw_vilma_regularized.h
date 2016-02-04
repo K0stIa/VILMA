@@ -13,8 +13,8 @@
 
 #include <vector>
 
-#include "sparse_vector.h"
 #include "ordinal_regression.h"
+#include "sparse_vector.h"
 
 namespace VilmaOracle {
 
@@ -30,7 +30,7 @@ class PwVilmaRegularized : public OrdinalRegression {
   using OrdinalRegression::Train;
 
   int GetOracleParamsDim();
-  virtual int GetFreeParamsDim() override;
+  int GetFreeParamsDim() override;
 
   virtual double risk(const double *weights, double *subgrad) override;
 
