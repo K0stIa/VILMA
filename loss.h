@@ -17,13 +17,13 @@ namespace Vilma {
 
 class ScalarLossInterface {
  public:
-  virtual inline int operator()(const int, const int) const = 0;
+  virtual inline double operator()(const int, const int) const = 0;
   static std::string name() { return "ScalarLossInterface"; }
 };
 
 class MAELoss : public ScalarLossInterface {
  public:
-  inline int operator()(const int y, const int t) const override {
+  inline double operator()(const int y, const int t) const override {
     return y > t ? y - t : t - y;
   }
   static std::string name() { return "MAELoss"; }
@@ -31,10 +31,10 @@ class MAELoss : public ScalarLossInterface {
 
 class ZOLoss : public ScalarLossInterface {
  public:
-  inline int operator()(const int y, const int t) const override {
+  inline double operator()(const int y, const int t) const override {
     return y == t ? 0 : 1;
   }
-  static std::string name() { return "MAELoss"; }
+  static std::string name() { return "ZOLoss"; }
 };
 }
 
